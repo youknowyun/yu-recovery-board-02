@@ -542,13 +542,15 @@
       if (task.note) el.querySelector(".note").textContent = task.note;
       el.querySelector(".check").onclick = () => toggleTask(index);
       addRenameGesture(txtEl, task);
-      addSwipe(el);
+      shell.appendChild(action);
+      shell.appendChild(el);
+      addSwipe(el, shell);
       addLongPressSort(shell, el, el.querySelector(".drag-handle"), task);
-      shell.appendChild(action); shell.appendChild(el); return shell;
+      return shell;
     }
-    function addSwipe(el) {
+    function addSwipe(el, shell) {
       let startX=0, startY=0, dx=0, open=false, dragging=false, moved=false;
-      const shell = el.parentElement;
+      shell = shell || el.parentElement;
       const maxOpen = () => Math.min(shell.offsetWidth * .33, 120);
       el.addEventListener("touchstart", e => {
         if (el.classList.contains("sorting") || e.target.closest(".drag-handle")) return;
