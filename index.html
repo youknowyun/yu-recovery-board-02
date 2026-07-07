@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yu 的生活恢复板</title>
+  <style>
+    :root {
+      --bg: #e8fff6;
+      --card: #f8fffc;
+      --mint: #9ee8cf;
+      --mint-dark: #3c9f83;
+      --text: #21433a;
+      --muted: #78958d;
+      --line: #c8eee1;
+      --danger: #d47b7b;
+      --shadow: 0 10px 30px rgba(54, 130, 105, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: radial-gradient(circle at top left, #d4fff0 0, var(--bg) 38%, #f4fffb 100%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 22px;
+    }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    header {
+      padding: 22px 4px 18px;
+    }
+    h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+    .subtitle { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .date { margin-top: 10px; font-size: 13px; color: var(--mint-dark); }
+    .panel {
+      background: rgba(248,255,252,.86);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      margin-bottom: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .input-row { display: grid; grid-template-columns: 1fr 132px 90px; gap: 10px; }
+    input, select, button {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px 13px;
+      font-size: 15px;
+      font-family: inherit;
+      background: white;
+      color: var(--text);
+      outline: none;
+    }
+    input:focus, select:focus { border-color: var(--mint-dark); box-shadow: 0 0 0 3px rgba(158,232,207,.32); }
+    button {
+      background: var(--mint);
+      border: none;
+      color: #174237;
+      font-weight: 650;
+      cursor: pointer;
+    }
+    button:active { transform: scale(.98); }
+    .sections { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .section h2 { margin: 0 0 12px; font-size: 17px; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: -4px; margin-bottom: 12px; }
+    .task {
+      display: grid;
+      grid-template-columns: 28px 1fr 28px;
+      align-items: center;
+      gap: 9px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 10px;
+      margin: 9px 0;
+      min-height: 48px;
+    }
+    .check {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      border: 2px solid var(--mint-dark);
+      display: grid; place-items: center;
+      color: white;
+      font-size: 15px;
+      user-select: none;
+    }
+    .task.done { opacity: .55; background: #f6faf8; }
+    .task.done .check { background: var(--mint-dark); }
+    .task.done .text { text-decoration: line-through; color: var(--muted); }
+    .delete {
+      border: none; background: transparent; color: var(--danger); padding: 0;
+      font-size: 19px; line-height: 1; cursor: pointer;
+    }
+    .progress { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; }
+    .bar { flex: 1; height: 9px; background: #d9f4eb; border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 0%; background: var(--mint-dark); transition: width .2s; }
+    .tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .secondary { background: #effbf7; border: 1px solid var(--line); color: var(--mint-dark); }
+    .small-note { color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 12px; }
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .input-row { grid-template-columns: 1fr; }
+      .sections { grid-template-columns: 1fr; }
+      h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Yu 的生活恢复板</h1>
+      <div class="subtitle">今天不用把人生恢复完整，只需要把生活往回拉一点点。</div>
+      <div class="date" id="date"></div>
+    </header>
+
+    <div class="panel">
+      <div class="input-row">
+        <input id="taskInput" placeholder="写一个很小的任务，比如：喝水 / 扔垃圾 / 洗床单" />
+        <select id="category">
+          <option value="survive">活下去</option>
+          <option value="room">房间维持</option>
+          <option value="study">学业/居留</option>
+        </select>
+        <button onclick="addTask()">添加</button>
+      </div>
+      <div class="progress">
+        <span id="progressText">0/0</span>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+      </div>
+      <div class="tools">
+        <button class="secondary" onclick="resetDone()">只清除已完成</button>
+        <button class="secondary" onclick="restoreDefault()">恢复默认任务</button>
+      </div>
+      <div class="small-note">建议每天只保留 5–9 个任务。任务太多时，大脑会把清单也当成压力。</div>
+    </div>
+
+    <div class="sections">
+      <div class="panel section">
+        <h2>活下去</h2>
+        <div class="hint">吃饭、喝水、睡觉，不追求完美。</div>
+        <div id="survive"></div>
+      </div>
+      <div class="panel section">
+        <h2>房间维持</h2>
+        <div class="hint">只做会明显降低混乱感的事。</div>
+        <div id="room"></div>
+      </div>
+      <div class="panel section">
+        <h2>学业 / 居留</h2>
+        <div class="hint">每天最多放 1–2 个小任务。</div>
+        <div id="study"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const storageKey = "yuRecoveryBoardTasksV1";
+    const defaults = [
+      { text: "喝一杯水", category: "survive", done: false },
+      { text: "吃一顿真正的饭", category: "survive", done: false },
+      { text: "今晚尽量睡觉，不复盘人生", category: "survive", done: false },
+      { text: "扔一袋垃圾", category: "room", done: false },
+      { text: "洗床单或洗一批衣服", category: "room", done: false },
+      { text: "开窗通风 10 分钟", category: "room", done: false },
+      { text: "只看 15 分钟课程资料", category: "study", done: false }
+    ];
+    let tasks = JSON.parse(localStorage.getItem(storageKey) || "null") || defaults;
+
+    function save() { localStorage.setItem(storageKey, JSON.stringify(tasks)); }
+    function renderDate() {
+      const d = new Date();
+      document.getElementById("date").textContent = d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+    }
+    function render() {
+      ["survive", "room", "study"].forEach(cat => document.getElementById(cat).innerHTML = "");
+      tasks.forEach((task, index) => {
+        const el = document.createElement("div");
+        el.className = "task" + (task.done ? " done" : "");
+        el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="text"></div><button class="delete" title="删除">×</button>`;
+        el.querySelector(".text").textContent = task.text;
+        el.querySelector(".check").onclick = () => toggleTask(index);
+        el.querySelector(".text").onclick = () => toggleTask(index);
+        el.querySelector(".delete").onclick = () => deleteTask(index);
+        document.getElementById(task.category).appendChild(el);
+      });
+      const done = tasks.filter(t => t.done).length;
+      const total = tasks.length;
+      document.getElementById("progressText").textContent = `${done}/${total}`;
+      document.getElementById("fill").style.width = total ? `${Math.round(done / total * 100)}%` : "0%";
+      save();
+    }
+    function addTask() {
+      const input = document.getElementById("taskInput");
+      const text = input.value.trim();
+      if (!text) return;
+      tasks.push({ text, category: document.getElementById("category").value, done: false });
+      input.value = "";
+      render();
+    }
+    function toggleTask(index) { tasks[index].done = !tasks[index].done; render(); }
+    function deleteTask(index) { tasks.splice(index, 1); render(); }
+    function resetDone() { tasks = tasks.filter(t => !t.done); render(); }
+    function restoreDefault() { tasks = JSON.parse(JSON.stringify(defaults)); render(); }
+    document.getElementById("taskInput").addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
+    renderDate(); render();
+  </script>
+</body>
+</html>
