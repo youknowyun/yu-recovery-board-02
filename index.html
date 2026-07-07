@@ -17,7 +17,7 @@
       --mint-dark: #237d68;
       --card: rgba(252, 255, 254, .94);
       --line: #c9f1e3;
-      --text: #203d36;
+      --text: #5A352A;
       --muted: #7e9991;
       --shadow: 0 12px 32px rgba(39, 125, 104, .12);
       --danger-soft: #FFE3EE;
@@ -177,22 +177,29 @@
     .due { color: var(--muted); background: #f3faf7; }
     .soon { color: #9a6d2d; background: #fff3dd; }
 
-    .days {
-      display: flex; flex-direction: column; gap: 12px;
-      max-height: min(68vh, 560px); overflow-y: auto; overflow-x: hidden;
-      padding: 2px 2px 8px; scroll-snap-type: y proximity;
-      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    .calendar-topline {
+      display: grid; grid-template-columns: 34px 1fr 34px; align-items: center; gap: 10px;
     }
-    .days::-webkit-scrollbar { display: none; }
-    .calendar-jump {
+    .calendar-month-text { text-align: center; font-weight: 800; color: var(--mint-dark); }
+    .calendar-selected {
+      margin-top: 8px; text-align: center; color: var(--muted); font-size: 12px; font-weight: 700;
+    }
+    .days {
+      display: block;
+      padding: 12px 0 2px;
+      overflow: visible;
+      touch-action: pan-y;
+    }
+    .calendar-jump,
+    .calendar-add-inline {
       width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
       background: white; color: var(--mint-dark); padding: 0; display: grid; place-items: center;
       box-shadow: 0 4px 14px rgba(47, 146, 120, .05);
       flex: none;
     }
+    .calendar-add-inline { font-size: 23px; font-weight: 800; line-height: 1; }
     .calendar-jump svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
     .calendar-month {
-      scroll-snap-align: start;
       border: 1px solid var(--line); border-radius: 20px;
       background: rgba(255,255,255,.62); padding: 10px;
     }
@@ -213,7 +220,7 @@
     }
     .day.placeholder { visibility: hidden; pointer-events: none; }
     .day.today:not(.active) { border-color: var(--mint-dark); }
-    .day.active { background: var(--mint); border-color: var(--mint); color: #113a31; font-weight: 750; }
+    .day.active { background: var(--mint); border-color: var(--mint); color: #5A352A; font-weight: 750; }
     .day .dow { font-size: 9px; color: inherit; opacity: .72; min-height: 12px; line-height: 1; }
     .day .num { font-size: 16px; line-height: 1.05; }
     .day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--mint-dark); margin: 3px auto 0; opacity: .8; }
@@ -227,7 +234,7 @@
     textarea { min-height: 80px; resize: vertical; }
     #taskNote { min-height: 68px; }
     input:focus, select:focus, textarea:focus { border-color: var(--mint-dark); box-shadow: 0 0 0 3px rgba(99, 230, 190, .22); }
-    button.primary { border: none; background: var(--mint); color: #123b32; font-weight: 750; }
+    button.primary { border: none; background: var(--mint); color: #5A352A; font-weight: 750; }
     button.secondary { background: #f1fff9; color: var(--mint-dark); font-weight: 700; }
     button.linkish { border: none; background: transparent; color: var(--mint-dark); text-align: left; padding: 4px 2px; font-weight: 700; }
     button:active { transform: scale(.985); }
@@ -348,12 +355,14 @@
 
     <section id="pageCalendar" class="page">
       <div class="panel">
-        <div class="topline">
+        <div class="calendar-topline">
           <button class="calendar-jump" type="button" onclick="jumpToToday()" aria-label="回到今天">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><path d="M12 7v5l3 2"></path></svg>
           </button>
-          <span class="count" id="selectedDateText"></span>
+          <strong class="calendar-month-text" id="calendarMonthText"></strong>
+          <button class="calendar-add-inline" type="button" onclick="openAddForDate(selectedDate)" aria-label="添加这一天的任务">+</button>
         </div>
+        <div class="calendar-selected" id="selectedDateText"></div>
         <div class="days" id="days"></div>
       </div>
       <div id="calendarList"></div>
@@ -428,6 +437,7 @@
     const MS = 86400000;
     const MAX_NOTES = 12;
     let selectedDate = todayKey();
+    let calendarMonth = monthStart(parseKey(selectedDate));
     let addReturnPage = "Today";
     let tasks = loadTasks();
     let notes = loadNotes();
@@ -505,17 +515,39 @@
       for (let d = parseKey(rangeStartKey()); d <= end; d.setDate(d.getDate() + 1)) keys.push(toKey(d));
       return keys;
     }
-    function monthRange() {
-      const start = parseKey(rangeStartKey());
-      const months = [];
-      for (let i = 0; i < 5; i++) months.push(new Date(start.getFullYear(), start.getMonth() + i, 1));
-      return months;
-    }
+    function monthStart(d) { return new Date(d.getFullYear(), d.getMonth(), 1); }
     function monthKey(d) {
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     }
+    function monthIndex(d) { return d.getFullYear() * 12 + d.getMonth(); }
+    function minCalendarMonth() {
+      const t = parseKey(todayKey());
+      return new Date(t.getFullYear(), t.getMonth() - 2, 1);
+    }
+    function maxCalendarMonth() {
+      const t = parseKey(todayKey());
+      return new Date(t.getFullYear(), t.getMonth() + 2, 1);
+    }
+    function clampCalendarMonth(d) {
+      const min = minCalendarMonth();
+      const max = maxCalendarMonth();
+      if (monthIndex(d) < monthIndex(min)) return min;
+      if (monthIndex(d) > monthIndex(max)) return max;
+      return monthStart(d);
+    }
+    function setCalendarMonthFromSelected() {
+      calendarMonth = clampCalendarMonth(monthStart(parseKey(selectedDate)));
+    }
+    function switchCalendarMonth(delta) {
+      const next = clampCalendarMonth(new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + delta, 1));
+      if (monthIndex(next) === monthIndex(calendarMonth)) return;
+      calendarMonth = next;
+      selectedDate = monthKey(next) === monthKey(parseKey(todayKey())) ? todayKey() : toKey(next);
+      render();
+    }
     function jumpToToday() {
       selectedDate = todayKey();
+      setCalendarMonthFromSelected();
       render();
     }
     function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -598,52 +630,52 @@
     function renderDays() {
       const box = document.getElementById("days");
       box.innerHTML = "";
+      setCalendarMonthFromSelected();
       const weekNames = ["日","一","二","三","四","五","六"];
-      monthRange().forEach(monthDate => {
-        const year = monthDate.getFullYear();
-        const month = monthDate.getMonth();
-        const section = document.createElement("section");
-        section.className = "calendar-month";
-        section.dataset.month = monthKey(monthDate);
-        const title = document.createElement("div");
-        title.className = "calendar-month-title";
-        title.innerHTML = `<span>${year}年${month + 1}月</span><small>${monthKey(monthDate) === monthKey(parseKey(todayKey())) ? "本月" : ""}</small>`;
-        section.appendChild(title);
+      const monthDate = calendarMonth;
+      const year = monthDate.getFullYear();
+      const month = monthDate.getMonth();
+      document.getElementById("calendarMonthText").textContent = `${year}年${month + 1}月`;
 
-        const weekRow = document.createElement("div");
-        weekRow.className = "week-row";
-        weekNames.forEach(name => {
-          const item = document.createElement("span");
-          item.textContent = name;
-          weekRow.appendChild(item);
-        });
-        section.appendChild(weekRow);
+      const section = document.createElement("section");
+      section.className = "calendar-month";
+      section.dataset.month = monthKey(monthDate);
 
-        const grid = document.createElement("div");
-        grid.className = "month-days";
-        const firstDay = new Date(year, month, 1).getDay();
-        const lastDate = new Date(year, month + 1, 0).getDate();
-        for (let i = 0; i < firstDay; i++) grid.appendChild(blankDay());
-        for (let day = 1; day <= lastDate; day++) {
-          const key = toKey(new Date(year, month, day));
-          const has = tasks.some(t => t.date === key && !t.done);
-          const el = document.createElement("button");
-          el.className = "day" + (key === todayKey() ? " today" : "") + (key === selectedDate ? " active" : "");
-          const label = key === todayKey() ? "今天" : (day === 1 ? `${month + 1}月` : "");
-          el.innerHTML = `<div class="dow">${label}</div><div class="num">${day}</div>${has ? '<div class="dot"></div>' : ''}`;
-          el.onclick = () => { selectedDate = key; render(); };
-          grid.appendChild(el);
-        }
-        const totalCells = firstDay + lastDate;
-        const trailing = (7 - (totalCells % 7)) % 7;
-        for (let i = 0; i < trailing; i++) grid.appendChild(blankDay());
-        section.appendChild(grid);
-        box.appendChild(section);
+      const title = document.createElement("div");
+      title.className = "calendar-month-title";
+      title.innerHTML = `<span></span><small>上滑下个月 / 下滑上个月</small>`;
+      section.appendChild(title);
+
+      const weekRow = document.createElement("div");
+      weekRow.className = "week-row";
+      weekNames.forEach(name => {
+        const item = document.createElement("span");
+        item.textContent = name;
+        weekRow.appendChild(item);
       });
-      setTimeout(() => {
-        const activeMonth = box.querySelector(".day.active")?.closest(".calendar-month");
-        if (activeMonth) activeMonth.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 0);
+      section.appendChild(weekRow);
+
+      const grid = document.createElement("div");
+      grid.className = "month-days";
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      for (let i = 0; i < firstDay; i++) grid.appendChild(blankDay());
+      for (let day = 1; day <= lastDate; day++) {
+        const key = toKey(new Date(year, month, day));
+        const has = tasks.some(t => t.date === key && !t.done);
+        const el = document.createElement("button");
+        el.className = "day" + (key === todayKey() ? " today" : "") + (key === selectedDate ? " active" : "");
+        const label = key === todayKey() ? "今天" : (day === 1 ? `${month + 1}月` : "");
+        el.innerHTML = `<div class="dow">${label}</div><div class="num">${day}</div>${has ? '<div class="dot"></div>' : ''}`;
+        el.onclick = () => { if (box.dataset.swiped === "1") return; selectedDate = key; render(); };
+        grid.appendChild(el);
+      }
+      const totalCells = firstDay + lastDate;
+      const trailing = (7 - (totalCells % 7)) % 7;
+      for (let i = 0; i < trailing; i++) grid.appendChild(blankDay());
+      section.appendChild(grid);
+      box.appendChild(section);
+      attachCalendarSwipe(box);
     }
     function blankDay() {
       const el = document.createElement("div");
@@ -1210,7 +1242,33 @@
       document.getElementById("noteToggle").textContent = box.classList.contains("open") ? "− 说明" : "+ 说明";
     };
 
-    // 日历改为完整月份纵向滚动，不再用左右滑动切换窗口。
+    function attachCalendarSwipe(box) {
+      let startX = 0, startY = 0;
+      box.ontouchstart = e => {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        delete box.dataset.swiped;
+      };
+      box.ontouchmove = e => {
+        if (!e.touches.length) return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (Math.abs(dy) > 18 && Math.abs(dy) > Math.abs(dx) * 1.25) e.preventDefault();
+      };
+      box.ontouchend = e => {
+        if (!e.changedTouches.length) return;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dy) > 54 && Math.abs(dy) > Math.abs(dx) * 1.25) {
+          box.dataset.swiped = "1";
+          switchCalendarMonth(dy < 0 ? 1 : -1);
+          setTimeout(() => { delete box.dataset.swiped; }, 240);
+        }
+      };
+    }
+
+    // 日历一次只显示一个完整月份；上下滑动切换月份。
 
     function showPage(name) {
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
