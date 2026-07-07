@@ -34,7 +34,8 @@
     }
     .app { max-width: 760px; margin: 0 auto; }
     header { padding: 10px 4px 12px; }
-    .eyebrow { color: var(--mint-dark); font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+    .eyebrow { color: var(--text); font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+    .eyebrow .today-date { color: var(--mint-dark); }
     h1 { margin: 6px 0 0; font-size: 28px; line-height: 1.15; }
     .panel {
       background: var(--card);
@@ -196,6 +197,11 @@
     .sticky-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
     }
+    .sticky-add {
+      min-height: 118px; height: 118px; border: 1px dashed var(--line); border-radius: 18px;
+      background: rgba(255,255,255,.65); color: var(--mint-dark); font-size: 28px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+    }
     .sticky-shell { position: relative; border-radius: 18px; overflow: hidden; min-height: 118px; }
     .sticky-action {
       position: absolute; inset: 0 0 0 auto; width: 33%;
@@ -290,7 +296,6 @@
           <strong>便利贴</strong>
           <span class="count" id="notesCount">0/9</span>
         </div>
-        <div class="sticky-hint">每张建议 40–60 个中文字；短句最清楚，太长会压缩可读性。</div>
         <div class="sticky-grid" id="stickyGrid"></div>
       </div>
     </section>
@@ -400,6 +405,10 @@
       const d = parseKey(key);
       return `${d.getMonth()+1}/${d.getDate()}`;
     }
+    function formatSlashDate(key) {
+      const d = parseKey(key);
+      return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
+    }
     function dayDiff(key) { return Math.round((parseKey(key) - parseKey(todayKey())) / MS); }
     function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -467,7 +476,7 @@
       return [...list].sort((a,b) => a.order - b.order || a.createdAt - b.createdAt);
     }
     function render() {
-      document.getElementById("todayLine").textContent = `Today’s · ${dateText(todayKey())}`;
+      document.getElementById("todayLine").innerHTML = `Today’s <span class="today-date">· ${formatSlashDate(todayKey())}</span>`;
       renderToday(); renderDays(); renderCalendar(); renderNotes(); fillDateSelect(); save();
     }
     function renderToday() {
@@ -492,7 +501,7 @@
       }
     }
     function renderCalendar() {
-      document.getElementById("selectedDateText").textContent = dateText(selectedDate);
+      document.getElementById("selectedDateText").textContent = "";
       const list = tasks.filter(t => t.date === selectedDate);
       drawGroupedList("calendarList", list, "这一天没有任务。", false, "calendar");
     }
@@ -525,7 +534,7 @@
       const dueClass = diff >= 0 && diff <= 2 && !task.done ? " soon" : "";
       const due = hideTodayDue && task.date === todayKey() ? "" : `<span class="tag due${dueClass}">${shortDate(task.date)}</span>`;
       const note = task.note ? `<div class="note"></div>` : "";
-      el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="task-main"><div class="txt"></div>${note}<div class="meta">${due}</div></div><div class="drag-handle" role="button" aria-label="拖动排序" title="拖动排序">⋮⋮</div>`;
+      el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="task-main"><div class="txt"></div>${note}<div class="meta">${due}</div></div><div class="drag-handle" role="button" aria-label="拖动排序" title="拖动排序">·</div>`;
       const txtEl = el.querySelector(".txt");
       txtEl.textContent = task.text;
       if (task.note) el.querySelector(".note").textContent = task.note;
@@ -660,8 +669,18 @@
       if (!grid) return;
       grid.innerHTML = "";
       document.getElementById("notesCount").textContent = `${notes.length}/9`;
-      for (let i=0; i<9; i++) {
+      const visibleSlots = Math.max(1, notes.length);
+      for (let i=0; i<visibleSlots; i++) {
         grid.appendChild(stickyElement(i, notes[i]));
+      }
+      if (notes.length < 9) {
+        const add = document.createElement("button");
+        add.type = "button";
+        add.className = "sticky-add";
+        add.textContent = "➕";
+        add.setAttribute("aria-label", "添加便利贴");
+        add.onclick = () => { startNoteEdit(notes.length, add); };
+        grid.appendChild(add);
       }
     }
 
@@ -680,7 +699,7 @@
       const card = document.createElement("button");
       card.type = "button";
       card.className = "sticky-note" + (note ? "" : " empty-note");
-      card.textContent = note ? note.text : "点一下写便利贴";
+      card.textContent = note ? note.text : "写下一张便利贴……";
       card.onclick = () => {
         if (card.dataset.swiped === "1") return;
         startNoteEdit(index, card);
@@ -697,11 +716,12 @@
       card.dataset.editing = "1";
       const current = notes[index]?.text || "";
       card.innerHTML = "";
+      card.className = "sticky-note";
       card.classList.remove("empty-note");
       const input = document.createElement("textarea");
       input.className = "sticky-input";
       input.maxLength = 120;
-      input.placeholder = "写 40–60 个中文字最清楚";
+      input.placeholder = "写下一张便利贴……";
       input.value = current;
       card.appendChild(input);
 
