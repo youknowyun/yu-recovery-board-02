@@ -2,49 +2,74 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yu 的生活恢复板</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#baf3df" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Yu Board" />
+  <title>🌱 Yu 的生活恢复板</title>
+  <link id="appleIcon" rel="apple-touch-icon" href="" />
+  <link id="favIcon" rel="icon" href="" />
   <style>
     :root {
-      --bg: #e8fff6;
-      --card: #f8fffc;
-      --mint: #9ee8cf;
-      --mint-dark: #3c9f83;
-      --text: #21433a;
-      --muted: #78958d;
-      --line: #c8eee1;
-      --danger: #d47b7b;
-      --shadow: 0 10px 30px rgba(54, 130, 105, 0.12);
+      --bg: #eafff7;
+      --card: rgba(250, 255, 253, 0.9);
+      --card-solid: #fbfffd;
+      --mint: #a8ecd4;
+      --mint-soft: #d9faef;
+      --mint-dark: #2f9278;
+      --text: #173d34;
+      --muted: #78938b;
+      --line: #c6eee1;
+      --danger: #e07373;
+      --danger-bg: #ffe8e8;
+      --orange: #df9b49;
+      --orange-bg: #fff4dd;
+      --shadow: 0 16px 42px rgba(47, 146, 120, 0.14);
     }
-    * { box-sizing: border-box; }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-      background: radial-gradient(circle at top left, #d4fff0 0, var(--bg) 38%, #f4fffb 100%);
+      background:
+        radial-gradient(circle at 18% 0%, #caffed 0, transparent 34%),
+        radial-gradient(circle at 90% 8%, #e0fff5 0, transparent 32%),
+        linear-gradient(135deg, #edfff8 0%, #f8fffc 48%, #e9fff7 100%);
       color: var(--text);
       min-height: 100vh;
-      padding: 22px;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
     }
-    .wrap { max-width: 860px; margin: 0 auto; }
-    header {
-      padding: 22px 4px 18px;
-    }
-    h1 { margin: 0; font-size: 28px; letter-spacing: .5px; }
+
+    .wrap { max-width: 980px; margin: 0 auto; }
+
+    header { padding: 18px 4px 16px; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: .2px; }
     .subtitle { margin-top: 8px; color: var(--muted); font-size: 14px; line-height: 1.6; }
-    .date { margin-top: 10px; font-size: 13px; color: var(--mint-dark); }
+    .date { margin-top: 10px; font-size: 13px; color: var(--mint-dark); font-weight: 650; }
+
     .panel {
-      background: rgba(248,255,252,.86);
-      border: 1px solid var(--line);
-      border-radius: 22px;
+      background: var(--card);
+      border: 1px solid rgba(198, 238, 225, .78);
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      padding: 18px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(10px);
+      padding: 16px;
+      margin-bottom: 14px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
-    .input-row { display: grid; grid-template-columns: 1fr 132px 90px; gap: 10px; }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) 132px 116px 132px 82px;
+      gap: 10px;
+      align-items: center;
+    }
+
     input, select, button {
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 12px 13px;
       font-size: 15px;
       font-family: inherit;
@@ -52,30 +77,108 @@
       color: var(--text);
       outline: none;
     }
-    input:focus, select:focus { border-color: var(--mint-dark); box-shadow: 0 0 0 3px rgba(158,232,207,.32); }
+
+    input:focus, select:focus {
+      border-color: var(--mint-dark);
+      box-shadow: 0 0 0 3px rgba(168, 236, 212, .38);
+    }
+
+    input[type="date"] { min-height: 46px; }
+
     button {
-      background: var(--mint);
+      background: linear-gradient(180deg, #baf3df, #94e1c8);
       border: none;
-      color: #174237;
-      font-weight: 650;
+      color: #173d34;
+      font-weight: 700;
       cursor: pointer;
     }
     button:active { transform: scale(.98); }
-    .sections { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-    .section h2 { margin: 0 0 12px; font-size: 17px; }
-    .hint { font-size: 12px; color: var(--muted); margin-top: -4px; margin-bottom: 12px; }
-    .task {
-      display: grid;
-      grid-template-columns: 28px 1fr 28px;
+
+    .secondary {
+      background: rgba(239, 251, 247, .96);
+      border: 1px solid var(--line);
+      color: var(--mint-dark);
+    }
+
+    .progress {
+      display: flex;
       align-items: center;
-      gap: 9px;
+      gap: 10px;
+      margin-top: 13px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .bar { flex: 1; height: 10px; background: #d9f4eb; border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #69cbaa, #2f9278); transition: width .28s ease; }
+    .tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+    .small-note { color: var(--muted); font-size: 12px; line-height: 1.65; margin-top: 12px; }
+
+    .legend {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.72);
+      border-radius: 999px;
+      padding: 7px 10px;
+      color: var(--mint-dark);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .section h2 { margin: 0 0 5px; font-size: 18px; }
+    .hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+    .list { min-height: 40px; }
+    .empty { color: var(--muted); font-size: 13px; line-height: 1.6; padding: 8px 2px; }
+
+    .task-shell {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      margin: 9px 0;
+      background: var(--danger);
+    }
+
+    .swipe-delete {
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 86px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: .5px;
+      background: linear-gradient(180deg, #e98383, #d76464);
+    }
+
+    .task {
+      position: relative;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      align-items: center;
+      gap: 10px;
       background: white;
       border: 1px solid var(--line);
-      border-radius: 16px;
-      padding: 10px;
-      margin: 9px 0;
-      min-height: 48px;
+      border-radius: 18px;
+      padding: 11px 12px;
+      min-height: 56px;
+      transition: transform .18s ease, opacity .18s ease, background .18s ease;
+      touch-action: pan-y;
+      user-select: none;
     }
+
+    .task.new { animation: popIn .18s ease both; }
+    @keyframes popIn { from { opacity: 0; transform: translateY(5px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
     .check {
       width: 24px; height: 24px;
       border-radius: 50%;
@@ -83,127 +186,436 @@
       display: grid; place-items: center;
       color: white;
       font-size: 15px;
-      user-select: none;
+      font-weight: 800;
+      flex: none;
     }
-    .task.done { opacity: .55; background: #f6faf8; }
+
+    .task.done { opacity: .58; background: #f6faf8; }
     .task.done .check { background: var(--mint-dark); }
     .task.done .text { text-decoration: line-through; color: var(--muted); }
-    .delete {
-      border: none; background: transparent; color: var(--danger); padding: 0;
-      font-size: 19px; line-height: 1; cursor: pointer;
+
+    .text { line-height: 1.35; overflow-wrap: anywhere; }
+    .meta { margin-top: 7px; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .tag, .due {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 650;
+      background: var(--mint-soft);
+      color: var(--mint-dark);
     }
-    .progress { display: flex; align-items: center; gap: 10px; margin-top: 12px; color: var(--muted); font-size: 13px; }
-    .bar { flex: 1; height: 9px; background: #d9f4eb; border-radius: 999px; overflow: hidden; }
-    .fill { height: 100%; width: 0%; background: var(--mint-dark); transition: width .2s; }
-    .tools { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
-    .secondary { background: #effbf7; border: 1px solid var(--line); color: var(--mint-dark); }
-    .small-note { color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 12px; }
-    @media (max-width: 760px) {
-      body { padding: 14px; }
-      .input-row { grid-template-columns: 1fr; }
-      .sections { grid-template-columns: 1fr; }
+    .due { background: #f1faf6; color: var(--muted); }
+    .due.soon { background: var(--orange-bg); color: var(--orange); }
+    .due.overdue { background: var(--danger-bg); color: var(--danger); }
+
+    .repay-card {
+      background: rgba(255,255,255,.72);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+    .repay-top { display: flex; justify-content: space-between; gap: 10px; color: var(--text); font-size: 13px; font-weight: 700; }
+    .repay-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .repay-inputs input { font-size: 14px; padding: 10px 11px; border-radius: 13px; }
+
+    footer { color: var(--muted); font-size: 12px; text-align: center; padding: 10px 0 4px; }
+
+    @media (max-width: 920px) {
+      .input-row { grid-template-columns: 1fr 1fr; }
+      .input-row input:first-child { grid-column: 1 / -1; }
+      .input-row button { grid-column: 1 / -1; }
+      .timeline { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      body { padding-left: 14px; padding-right: 14px; }
       h1 { font-size: 24px; }
+      .panel { border-radius: 22px; padding: 15px; }
+      .input-row { grid-template-columns: 1fr; }
+      .input-row input:first-child, .input-row button { grid-column: auto; }
+      .repay-inputs { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>Yu 的生活恢复板</h1>
-      <div class="subtitle">今天不用把人生恢复完整，只需要把生活往回拉一点点。</div>
+      <h1>🌱 Yu 的生活恢复板</h1>
+      <div class="subtitle">不是补完人生，是把今天和近十天都往回拉一点点。</div>
       <div class="date" id="date"></div>
     </header>
 
     <div class="panel">
       <div class="input-row">
-        <input id="taskInput" placeholder="写一个很小的任务，比如：喝水 / 扔垃圾 / 洗床单" />
+        <input id="taskInput" placeholder="写一个小任务，比如：洗床单 / 背10个词 / 存一笔尾款" />
         <select id="category">
-          <option value="survive">活下去</option>
-          <option value="room">房间维持</option>
-          <option value="study">学业/居留</option>
+          <option value="life">生活小样</option>
+          <option value="study">学业拼图</option>
+          <option value="repay">还款进度</option>
+          <option value="balance">尾款提醒</option>
         </select>
+        <select id="timeScope" onchange="toggleDateInput()">
+          <option value="today">今天</option>
+          <option value="tenDays">近10天</option>
+          <option value="dated">指定日期</option>
+        </select>
+        <input id="dueDate" type="date" />
         <button onclick="addTask()">添加</button>
       </div>
+
       <div class="progress">
-        <span id="progressText">0/0</span>
+        <span id="progressText">今天完成了 0 件小事</span>
         <div class="bar"><div class="fill" id="fill"></div></div>
       </div>
+
       <div class="tools">
         <button class="secondary" onclick="resetDone()">只清除已完成</button>
         <button class="secondary" onclick="restoreDefault()">恢复默认任务</button>
       </div>
-      <div class="small-note">建议每天只保留 5–9 个任务。任务太多时，大脑会把清单也当成压力。</div>
+
+      <div class="legend">
+        <span class="pill">🌿 生活小样</span>
+        <span class="pill">🧩 学业拼图</span>
+        <span class="pill">💰 还款进度</span>
+        <span class="pill">⏰ 尾款提醒</span>
+      </div>
+
+      <div class="repay-card">
+        <div class="repay-top">
+          <span>还款进度</span>
+          <span id="repayText">0 / 0</span>
+        </div>
+        <div class="bar" style="margin-top:10px;"><div class="fill" id="repayFill"></div></div>
+        <div class="repay-inputs">
+          <input id="repaidInput" inputmode="decimal" placeholder="已还金额" onchange="saveRepay()" />
+          <input id="repayTargetInput" inputmode="decimal" placeholder="目标金额" onchange="saveRepay()" />
+        </div>
+      </div>
+
+      <div class="small-note">左滑任务可删除。时间决定它什么时候出现，分类决定它属于哪类压力。</div>
     </div>
 
-    <div class="sections">
+    <div class="timeline">
       <div class="panel section">
-        <h2>活下去</h2>
-        <div class="hint">吃饭、喝水、睡觉，不追求完美。</div>
-        <div id="survive"></div>
+        <h2>今天</h2>
+        <div class="hint">只放眼前能处理的小事。</div>
+        <div class="list" id="today"></div>
       </div>
       <div class="panel section">
-        <h2>房间维持</h2>
-        <div class="hint">只做会明显降低混乱感的事。</div>
-        <div id="room"></div>
+        <h2>近 10 天</h2>
+        <div class="hint">复习、材料、还款、尾款，都可以慢慢推进。</div>
+        <div class="list" id="tenDays"></div>
       </div>
       <div class="panel section">
-        <h2>学业 / 居留</h2>
-        <div class="hint">每天最多放 1–2 个小任务。</div>
-        <div id="study"></div>
+        <h2>日期提醒</h2>
+        <div class="hint">有明确截止日的事放这里。</div>
+        <div class="list" id="dated"></div>
       </div>
     </div>
+
+    <footer>不是把清单做完才算活得好。能往前挪一点，就已经算数。</footer>
   </div>
 
   <script>
-    const storageKey = "yuRecoveryBoardTasksV1";
+    const storageKey = "yuRecoveryBoardTasksV2";
+    const oldStorageKey = "yuRecoveryBoardTasksV1";
+    const repayKey = "yuRecoveryBoardRepayV1";
+
+    const categories = {
+      life: { label: "生活小样", icon: "🌿" },
+      study: { label: "学业拼图", icon: "🧩" },
+      repay: { label: "还款进度", icon: "💰" },
+      balance: { label: "尾款提醒", icon: "⏰" }
+    };
+
+    const oldCategoryMap = {
+      survive: "life",
+      room: "life",
+      study: "study"
+    };
+
     const defaults = [
-      { text: "喝一杯水", category: "survive", done: false },
-      { text: "吃一顿真正的饭", category: "survive", done: false },
-      { text: "今晚尽量睡觉，不复盘人生", category: "survive", done: false },
-      { text: "扔一袋垃圾", category: "room", done: false },
-      { text: "洗床单或洗一批衣服", category: "room", done: false },
-      { text: "开窗通风 10 分钟", category: "room", done: false },
-      { text: "只看 15 分钟课程资料", category: "study", done: false }
+      { text: "喝一杯水", category: "life", scope: "today", done: false },
+      { text: "吃一顿真正的饭", category: "life", scope: "today", done: false },
+      { text: "洗床单或洗一批衣服", category: "life", scope: "tenDays", done: false },
+      { text: "只看 15 分钟课程资料", category: "study", scope: "today", done: false },
+      { text: "整理一个考试/居留小步骤", category: "study", scope: "tenDays", done: false },
+      { text: "记录今天能存下的一笔钱", category: "repay", scope: "tenDays", done: false },
+      { text: "检查一次尾款截止日", category: "balance", scope: "dated", due: nextDate(7), done: false }
     ];
-    let tasks = JSON.parse(localStorage.getItem(storageKey) || "null") || defaults;
+
+    function nextDate(days) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function loadTasks() {
+      const v2 = localStorage.getItem(storageKey);
+      if (v2) return JSON.parse(v2);
+      const v1 = localStorage.getItem(oldStorageKey);
+      if (!v1) return JSON.parse(JSON.stringify(defaults));
+      try {
+        return JSON.parse(v1).map(t => ({
+          text: t.text,
+          category: oldCategoryMap[t.category] || "life",
+          scope: "today",
+          done: !!t.done
+        }));
+      } catch {
+        return JSON.parse(JSON.stringify(defaults));
+      }
+    }
+
+    let tasks = loadTasks();
+    let repay = JSON.parse(localStorage.getItem(repayKey) || "null") || { paid: "", target: "" };
 
     function save() { localStorage.setItem(storageKey, JSON.stringify(tasks)); }
+
     function renderDate() {
       const d = new Date();
       document.getElementById("date").textContent = d.toLocaleDateString("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
     }
+
+    function toggleDateInput() {
+      const scope = document.getElementById("timeScope").value;
+      const due = document.getElementById("dueDate");
+      due.style.display = scope === "dated" ? "block" : "none";
+      if (scope === "dated" && !due.value) due.value = nextDate(7);
+    }
+
+    function scopeLabel(task) {
+      if (task.scope === "today") return "今天";
+      if (task.scope === "tenDays") return "近10天";
+      return formatDue(task.due);
+    }
+
+    function daysUntil(dateStr) {
+      if (!dateStr) return null;
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const due = new Date(dateStr + "T00:00:00");
+      return Math.round((due - today) / 86400000);
+    }
+
+    function formatDue(dateStr) {
+      if (!dateStr) return "未设日期";
+      const diff = daysUntil(dateStr);
+      const d = new Date(dateStr + "T00:00:00");
+      const md = `${d.getMonth() + 1}/${d.getDate()}`;
+      if (diff < 0) return `${md} 已过期`;
+      if (diff === 0) return `${md} 今天截止`;
+      if (diff <= 3) return `${md} 还剩${diff}天`;
+      return `${md}`;
+    }
+
+    function dueClass(task) {
+      if (task.scope !== "dated") return "";
+      const diff = daysUntil(task.due);
+      if (diff === null) return "";
+      if (diff < 0) return " overdue";
+      if (diff <= 3) return " soon";
+      return "";
+    }
+
     function render() {
-      ["survive", "room", "study"].forEach(cat => document.getElementById(cat).innerHTML = "");
-      tasks.forEach((task, index) => {
+      ["today", "tenDays", "dated"].forEach(id => document.getElementById(id).innerHTML = "");
+
+      const ordered = tasks.map((task, index) => ({ task, index })).sort((a, b) => {
+        if (a.task.done !== b.task.done) return a.task.done ? 1 : -1;
+        if (a.task.scope === "dated" && b.task.scope === "dated") {
+          return (a.task.due || "9999-12-31").localeCompare(b.task.due || "9999-12-31");
+        }
+        return a.index - b.index;
+      });
+
+      ordered.forEach(({ task, index }) => {
+        const shell = document.createElement("div");
+        shell.className = "task-shell";
+        shell.innerHTML = `<div class="swipe-delete">删除</div>`;
+
         const el = document.createElement("div");
         el.className = "task" + (task.done ? " done" : "");
-        el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="text"></div><button class="delete" title="删除">×</button>`;
+        el.innerHTML = `
+          <div class="check">${task.done ? "✓" : ""}</div>
+          <div>
+            <div class="text"></div>
+            <div class="meta">
+              <span class="tag">${categories[task.category]?.icon || "🌿"} ${categories[task.category]?.label || "生活小样"}</span>
+              <span class="due${dueClass(task)}">${scopeLabel(task)}</span>
+            </div>
+          </div>`;
         el.querySelector(".text").textContent = task.text;
         el.querySelector(".check").onclick = () => toggleTask(index);
         el.querySelector(".text").onclick = () => toggleTask(index);
-        el.querySelector(".delete").onclick = () => deleteTask(index);
-        document.getElementById(task.category).appendChild(el);
+        attachSwipe(el, index);
+        shell.appendChild(el);
+        document.getElementById(task.scope || "today").appendChild(shell);
       });
-      const done = tasks.filter(t => t.done).length;
-      const total = tasks.length;
-      document.getElementById("progressText").textContent = `${done}/${total}`;
-      document.getElementById("fill").style.width = total ? `${Math.round(done / total * 100)}%` : "0%";
+
+      ["today", "tenDays", "dated"].forEach(id => {
+        const box = document.getElementById(id);
+        if (!box.children.length) box.innerHTML = `<div class="empty">这里暂时是空的。</div>`;
+      });
+
+      const todayTasks = tasks.filter(t => (t.scope || "today") === "today");
+      const todayDone = todayTasks.filter(t => t.done).length;
+      const total = todayTasks.length;
+      document.getElementById("progressText").textContent = `今天完成了 ${todayDone} 件小事`;
+      document.getElementById("fill").style.width = total ? `${Math.round(todayDone / total * 100)}%` : "0%";
+      renderRepay();
       save();
     }
+
+    function attachSwipe(el, index) {
+      let startX = 0;
+      let currentX = 0;
+      let dragging = false;
+      const maxLeft = -86;
+
+      el.addEventListener("touchstart", e => {
+        startX = e.touches[0].clientX;
+        currentX = 0;
+        dragging = true;
+        el.style.transition = "none";
+      }, { passive: true });
+
+      el.addEventListener("touchmove", e => {
+        if (!dragging) return;
+        const dx = e.touches[0].clientX - startX;
+        if (dx < 0) {
+          currentX = Math.max(dx, maxLeft);
+          el.style.transform = `translateX(${currentX}px)`;
+        }
+      }, { passive: true });
+
+      el.addEventListener("touchend", () => {
+        dragging = false;
+        el.style.transition = "transform .18s ease, opacity .18s ease";
+        if (currentX < -58) {
+          el.style.transform = "translateX(-110%)";
+          el.style.opacity = "0";
+          setTimeout(() => deleteTask(index), 160);
+        } else {
+          el.style.transform = "translateX(0)";
+        }
+      });
+
+      let mouseDown = false;
+      el.addEventListener("mousedown", e => { startX = e.clientX; currentX = 0; mouseDown = true; el.style.transition = "none"; });
+      window.addEventListener("mousemove", e => {
+        if (!mouseDown) return;
+        const dx = e.clientX - startX;
+        if (dx < 0) {
+          currentX = Math.max(dx, maxLeft);
+          el.style.transform = `translateX(${currentX}px)`;
+        }
+      });
+      window.addEventListener("mouseup", () => {
+        if (!mouseDown) return;
+        mouseDown = false;
+        el.style.transition = "transform .18s ease, opacity .18s ease";
+        if (currentX < -58) {
+          el.style.transform = "translateX(-110%)";
+          el.style.opacity = "0";
+          setTimeout(() => deleteTask(index), 160);
+        } else {
+          el.style.transform = "translateX(0)";
+        }
+      });
+    }
+
     function addTask() {
       const input = document.getElementById("taskInput");
       const text = input.value.trim();
       if (!text) return;
-      tasks.push({ text, category: document.getElementById("category").value, done: false });
+      const scope = document.getElementById("timeScope").value;
+      const due = document.getElementById("dueDate").value;
+      tasks.push({
+        text,
+        category: document.getElementById("category").value,
+        scope,
+        due: scope === "dated" ? (due || nextDate(7)) : undefined,
+        done: false
+      });
       input.value = "";
       render();
     }
-    function toggleTask(index) { tasks[index].done = !tasks[index].done; render(); }
-    function deleteTask(index) { tasks.splice(index, 1); render(); }
-    function resetDone() { tasks = tasks.filter(t => !t.done); render(); }
-    function restoreDefault() { tasks = JSON.parse(JSON.stringify(defaults)); render(); }
+
+    function toggleTask(index) {
+      tasks[index].done = !tasks[index].done;
+      render();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      render();
+    }
+
+    function resetDone() {
+      tasks = tasks.filter(t => !t.done);
+      render();
+    }
+
+    function restoreDefault() {
+      tasks = JSON.parse(JSON.stringify(defaults));
+      render();
+    }
+
+    function saveRepay() {
+      repay = {
+        paid: document.getElementById("repaidInput").value.trim(),
+        target: document.getElementById("repayTargetInput").value.trim()
+      };
+      localStorage.setItem(repayKey, JSON.stringify(repay));
+      renderRepay();
+    }
+
+    function renderRepay() {
+      const paid = Number(repay.paid) || 0;
+      const target = Number(repay.target) || 0;
+      const pct = target ? Math.min(100, Math.round(paid / target * 100)) : 0;
+      document.getElementById("repaidInput").value = repay.paid || "";
+      document.getElementById("repayTargetInput").value = repay.target || "";
+      document.getElementById("repayText").textContent = target ? `${paid} / ${target}｜${pct}%` : "先填目标金额";
+      document.getElementById("repayFill").style.width = `${pct}%`;
+    }
+
+    function installIcon() {
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'>
+        <defs>
+          <linearGradient id='bg' x1='0' y1='0' x2='1' y2='1'>
+            <stop offset='0' stop-color='#e8fff6'/><stop offset='.55' stop-color='#b8f0dc'/><stop offset='1' stop-color='#82d9bd'/>
+          </linearGradient>
+          <radialGradient id='drop' cx='35%' cy='24%' r='72%'>
+            <stop offset='0' stop-color='white' stop-opacity='.95'/><stop offset='.45' stop-color='#dffff4' stop-opacity='.82'/><stop offset='1' stop-color='#62c5aa' stop-opacity='.78'/>
+          </radialGradient>
+          <filter id='shadow' x='-20%' y='-20%' width='140%' height='140%'>
+            <feDropShadow dx='0' dy='10' stdDeviation='7' flood-color='#2f9278' flood-opacity='.26'/>
+          </filter>
+        </defs>
+        <rect width='180' height='180' rx='42' fill='url(#bg)'/>
+        <path d='M91 25 C118 58 134 82 134 108 C134 136 115 154 90 154 C65 154 46 136 46 108 C46 82 64 57 91 25Z' fill='url(#drop)' filter='url(#shadow)'/>
+        <path d='M88 126 C88 105 85 91 73 78' stroke='#247d68' stroke-width='8' stroke-linecap='round' fill='none'/>
+        <path d='M89 98 C74 78 52 75 42 88 C60 96 77 99 89 98Z' fill='#2f9278'/>
+        <path d='M91 101 C103 79 126 73 141 86 C124 99 105 104 91 101Z' fill='#3ab991'/>
+        <path d='M85 122 C103 116 116 122 124 139 C107 139 95 133 85 122Z' fill='#78d8b8'/>
+        <circle cx='68' cy='54' r='10' fill='white' opacity='.55'/>
+      </svg>`;
+      const url = "data:image/svg+xml," + encodeURIComponent(svg);
+      document.getElementById("appleIcon").href = url;
+      document.getElementById("favIcon").href = url;
+    }
+
     document.getElementById("taskInput").addEventListener("keydown", e => { if (e.key === "Enter") addTask(); });
-    renderDate(); render();
+    installIcon();
+    renderDate();
+    toggleDateInput();
+    render();
   </script>
 </body>
 </html>
