@@ -51,6 +51,14 @@
     .bar { height: 9px; background: #dff8ef; border-radius: 999px; overflow: hidden; margin-top: 12px; }
     .fill { height: 100%; width: 0%; background: var(--mint); transition: width .28s ease; }
     .empty { color: var(--muted); text-align: center; padding: 24px 10px; line-height: 1.7; font-size: 14px; }
+    .calendar-empty-add {
+      width: 54px; height: 54px; margin: 0 auto;
+      border-radius: 20px; border: 1px solid var(--line);
+      background: white; color: var(--mint-dark);
+      font-size: 32px; font-weight: 800; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(47, 146, 120, .06);
+    }
 
     .home-actions {
       display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;
@@ -505,8 +513,35 @@
     function renderCalendar() {
       document.getElementById("selectedDateText").textContent = "";
       const list = tasks.filter(t => t.date === selectedDate);
+      if (!list.length && selectedDate !== todayKey()) {
+        const box = document.getElementById("calendarList");
+        box.innerHTML = `<div class="panel empty"><button class="calendar-empty-add" type="button" onclick="openAddForDate('${selectedDate}')" aria-label="添加这一天的任务">+</button></div>`;
+        return;
+      }
       drawGroupedList("calendarList", list, "这一天没有任务。", true, "calendar");
     }
+
+    function openAddForDate(key) {
+      fillDateSelect();
+      const diff = dayDiff(key);
+      const dateMode = document.getElementById("dateMode");
+      const tenDaySelect = document.getElementById("tenDaySelect");
+      const customDate = document.getElementById("customDate");
+      if (diff >= 0 && diff < 10) {
+        dateMode.value = "ten";
+        tenDaySelect.value = key;
+        tenDaySelect.style.display = "block";
+        customDate.style.display = "none";
+      } else {
+        dateMode.value = "custom";
+        customDate.value = key;
+        tenDaySelect.style.display = "none";
+        customDate.style.display = "block";
+      }
+      showPage("Add");
+      setTimeout(() => document.getElementById("taskText").focus(), 80);
+    }
+
     function drawGroupedList(id, list, emptyText, hideTodayDue, pageKey) {
       const box = document.getElementById(id); box.innerHTML = "";
       if (!list.length) { box.innerHTML = `<div class="panel empty">${emptyText}</div>`; return; }
