@@ -280,7 +280,7 @@
         </div>
         <div class="bar"><div class="fill" id="todayFill"></div></div>
         <div class="home-actions" aria-label="快捷操作">
-          <button class="symbol-btn" type="button" onclick="showPage('Add')" aria-label="添加任务">+</button>
+          <button class="symbol-btn" type="button" onclick="openAddDefault()" aria-label="添加任务">+</button>
           <button class="symbol-btn minus" type="button" onclick="clearDone()" aria-label="清除已完成">−</button>
         </div>
       </div>
@@ -366,6 +366,7 @@
     };
     const MS = 86400000;
     let selectedDate = todayKey();
+    let addReturnPage = "Today";
     let tasks = loadTasks();
     let notes = loadNotes();
     let collapsed = JSON.parse(localStorage.getItem(collapsedKey) || "{}");
@@ -512,13 +513,29 @@
     }
     function renderCalendar() {
       document.getElementById("selectedDateText").textContent = "";
+      const box = document.getElementById("calendarList");
       const list = tasks.filter(t => t.date === selectedDate);
       if (!list.length && selectedDate !== todayKey()) {
-        const box = document.getElementById("calendarList");
-        box.innerHTML = `<div class="panel empty"><button class="calendar-empty-add" type="button" onclick="openAddForDate('${selectedDate}')" aria-label="添加这一天的任务">+</button></div>`;
+        box.innerHTML = calendarAddPanel(selectedDate);
         return;
       }
       drawGroupedList("calendarList", list, "这一天没有任务。", true, "calendar");
+      if (selectedDate !== todayKey()) {
+        box.insertAdjacentHTML("beforeend", calendarAddPanel(selectedDate));
+      }
+    }
+
+    function calendarAddPanel(key) {
+      return `<div class="panel empty"><button class="calendar-empty-add" type="button" onclick="openAddForDate('${key}')" aria-label="添加这一天的任务">+</button></div>`;
+    }
+
+    function openAddDefault() {
+      addReturnPage = "Today";
+      document.getElementById("dateMode").value = "today";
+      document.getElementById("tenDaySelect").style.display = "none";
+      document.getElementById("customDate").style.display = "none";
+      showPage("Add");
+      setTimeout(() => document.getElementById("taskText").focus(), 80);
     }
 
     function openAddForDate(key) {
@@ -538,6 +555,7 @@
         tenDaySelect.style.display = "none";
         customDate.style.display = "block";
       }
+      addReturnPage = "Calendar";
       showPage("Add");
       setTimeout(() => document.getElementById("taskText").focus(), 80);
     }
@@ -569,7 +587,7 @@
       const el = document.createElement("div"); el.className = "task" + (task.done ? " done" : "");
       const diff = dayDiff(task.date);
       const dueClass = diff >= 0 && diff <= 2 && !task.done ? " soon" : "";
-      const due = hideTodayDue && task.date === todayKey() ? "" : `<span class="tag due${dueClass}">${shortDate(task.date)}</span>`;
+      const due = hideTodayDue ? "" : `<span class="tag due${dueClass}">${shortDate(task.date)}</span>`;
       const note = task.note ? `<div class="note"></div>` : "";
       el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="task-main"><div class="txt"></div>${note}<div class="meta">${due}</div></div><div class="drag-handle" role="button" aria-label="拖动排序" title="拖动排序">·</div>`;
       const txtEl = el.querySelector(".txt");
@@ -886,12 +904,18 @@
       const input = document.getElementById("taskText");
       const noteInput = document.getElementById("taskNote");
       const text = input.value.trim(); if (!text) return;
-      tasks.push({ id: uid(), text, note: noteInput.value.trim(), category: document.getElementById("taskCategory").value, date: targetDate(), done: false, order: Date.now(), createdAt: Date.now() });
-      input.value = ""; noteInput.value = ""; closeNoteBox(); selectedDate = tasks[tasks.length-1].date; showPage("Today"); render();
+      const date = targetDate();
+      tasks.push({ id: uid(), text, note: noteInput.value.trim(), category: document.getElementById("taskCategory").value, date, done: false, order: Date.now(), createdAt: Date.now() });
+      input.value = ""; noteInput.value = ""; closeNoteBox(); selectedDate = date;
+      const returnPage = addReturnPage === "Calendar" || date !== todayKey() ? "Calendar" : "Today";
+      addReturnPage = "Today"; showPage(returnPage); render();
     }
     function quickAdd(text, category) {
-      tasks.push({ id: uid(), text, note: "", category, date: targetDate(), done: false, order: Date.now(), createdAt: Date.now() });
-      selectedDate = tasks[tasks.length-1].date; showPage("Today"); render();
+      const date = targetDate();
+      tasks.push({ id: uid(), text, note: "", category, date, done: false, order: Date.now(), createdAt: Date.now() });
+      selectedDate = date;
+      const returnPage = addReturnPage === "Calendar" || date !== todayKey() ? "Calendar" : "Today";
+      addReturnPage = "Today"; showPage(returnPage); render();
     }
     function clearDone() { tasks = tasks.filter(t => !t.done); render(); }
     function fillDateSelect() {
