@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#63E6BE" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Yu Board" />
-  <title>Yu Board</title>
+  <meta name="apple-mobile-web-app-title" content="Mintfield" />
+  <title>Mintfield</title>
   <link id="appleIcon" rel="apple-touch-icon" href="" />
   <link id="favIcon" rel="icon" href="" />
   <style>
@@ -20,8 +20,8 @@
       --text: #203d36;
       --muted: #7e9991;
       --shadow: 0 12px 32px rgba(39, 125, 104, .12);
-      --danger-soft: #f2dfdf;
-      --danger-text: #ad7777;
+      --danger-soft: #FFE3EE;
+      --danger-text: #E783A3;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { min-height: 100%; }
@@ -69,12 +69,14 @@
     .task-action {
       position: absolute; inset: 0 0 0 auto; width: 33%;
       display: flex; align-items: center; justify-content: flex-end;
-      padding-right: 18px; background: linear-gradient(90deg, transparent, #f7eeee);
+      padding-right: 18px; background: linear-gradient(90deg, transparent, #fff0f5);
     }
     .xbtn {
       width: 34px; height: 34px; border-radius: 50%; border: none;
       background: var(--danger-soft); color: var(--danger-text);
-      font-size: 17px; line-height: 1; display: grid; place-items: center;
+      font-size: 16px; line-height: 1; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 750;
     }
     .task {
       position: relative; z-index: 1;
@@ -87,6 +89,7 @@
     }
     .task.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
     .task.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
+    body.drag-lock { overflow: hidden; user-select: none; }
     .drop-before { border-top: 2px solid var(--mint-dark); padding-top: 7px; }
     .drop-after { border-bottom: 2px solid var(--mint-dark); padding-bottom: 7px; }
     .check {
@@ -97,6 +100,7 @@
     .task.done .check { background: var(--mint-dark); }
     .task.done .txt { text-decoration: line-through; color: var(--muted); }
     .txt { font-size: 15px; line-height: 1.35; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .rename-input { width: 100%; min-height: 34px; padding: 6px 8px; border-radius: 10px; font-size: 15px; line-height: 1.35; }
     .note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 5px; white-space: pre-wrap; }
     .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
     .tag { font-size: 11px; color: var(--mint-dark); background: #e8fbf4; padding: 3px 7px; border-radius: 999px; }
@@ -156,7 +160,7 @@
   <main class="app">
     <header>
       <div class="eyebrow" id="todayLine">TODAY</div>
-      <h1>Yu Board</h1>
+      <h1>Mintfield</h1>
     </header>
 
     <section id="pageToday" class="page active">
@@ -317,7 +321,7 @@
     }
 
     function sorted(list) {
-      return [...list].sort((a,b) => Number(a.done) - Number(b.done) || a.order - b.order || a.createdAt - b.createdAt);
+      return [...list].sort((a,b) => a.order - b.order || a.createdAt - b.createdAt);
     }
     function render() {
       document.getElementById("todayLine").textContent = dateText(todayKey());
@@ -370,7 +374,7 @@
       const index = tasks.findIndex(t => t.id === task.id);
       const shell = document.createElement("div"); shell.className = "task-shell"; shell.dataset.id = task.id;
       const action = document.createElement("div"); action.className = "task-action";
-      const x = document.createElement("button"); x.className = "xbtn"; x.textContent = "×";
+      const x = document.createElement("button"); x.className = "xbtn"; x.textContent = "✕"; x.setAttribute("aria-label", "删除");
       x.onclick = () => removeTask(index, shell);
       action.appendChild(x);
       const el = document.createElement("div"); el.className = "task" + (task.done ? " done" : "");
@@ -379,10 +383,11 @@
       const due = hideTodayDue && task.date === todayKey() ? "" : `<span class="tag due${dueClass}">${shortDate(task.date)}</span>`;
       const note = task.note ? `<div class="note"></div>` : "";
       el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div><div class="txt"></div>${note}<div class="meta">${due}</div></div>`;
-      el.querySelector(".txt").textContent = task.text;
+      const txtEl = el.querySelector(".txt");
+      txtEl.textContent = task.text;
       if (task.note) el.querySelector(".note").textContent = task.note;
       el.querySelector(".check").onclick = () => toggleTask(index);
-      el.querySelector(".txt").onclick = () => toggleTask(index);
+      addRenameGesture(txtEl, task);
       addSwipe(el);
       addLongPressSort(shell, el, task);
       shell.appendChild(action); shell.appendChild(el); return shell;
@@ -413,39 +418,79 @@
       });
     }
     function addLongPressSort(shell, card, task) {
-      let timer=null, sorting=false, startX=0, startY=0, lastTarget=null;
+      let timer=null, sorting=false, startX=0, startY=0, pointerId=null, lastTarget=null;
       const clearMarks = () => document.querySelectorAll(".drop-before,.drop-after").forEach(e => e.classList.remove("drop-before","drop-after"));
+      const markTarget = (clientY) => {
+        clearMarks(); lastTarget = null;
+        const body = shell.parentElement;
+        const siblings = [...body.querySelectorAll(".task-shell")].filter(el => el !== shell);
+        if (!siblings.length) return;
+        let target = null;
+        for (const item of siblings) {
+          const r = item.getBoundingClientRect();
+          if (clientY >= r.top && clientY <= r.bottom) {
+            target = { el: item, after: clientY > r.top + r.height / 2 };
+            break;
+          }
+        }
+        if (!target) {
+          const first = siblings[0].getBoundingClientRect();
+          const last = siblings[siblings.length - 1].getBoundingClientRect();
+          if (clientY < first.top) target = { el: siblings[0], after: false };
+          else if (clientY > last.bottom) target = { el: siblings[siblings.length - 1], after: true };
+          else {
+            let closest = siblings[0], min = Infinity;
+            siblings.forEach(item => {
+              const r = item.getBoundingClientRect();
+              const dist = Math.abs(clientY - (r.top + r.height / 2));
+              if (dist < min) { min = dist; closest = item; }
+            });
+            const r = closest.getBoundingClientRect();
+            target = { el: closest, after: clientY > r.top + r.height / 2 };
+          }
+        }
+        if (target) {
+          target.el.classList.add(target.after ? "drop-after" : "drop-before");
+          lastTarget = target;
+        }
+      };
       const startSort = () => {
-        sorting = true; shell.classList.add("dragging"); card.classList.add("sorting"); card.style.transition = "none";
+        sorting = true;
+        shell.classList.add("dragging");
+        card.classList.add("sorting");
+        document.body.classList.add("drag-lock");
+        card.style.transition = "none";
+        card.style.pointerEvents = "none";
         if (navigator.vibrate) navigator.vibrate(12);
       };
       card.addEventListener("pointerdown", e => {
+        if (e.target.closest("button,input,textarea,select")) return;
         if (e.pointerType === "mouse" && e.button !== 0) return;
+        pointerId = e.pointerId;
         startX = e.clientX; startY = e.clientY;
+        try { card.setPointerCapture(pointerId); } catch (_) {}
         timer = setTimeout(startSort, 520);
       });
       card.addEventListener("pointermove", e => {
+        if (pointerId !== null && e.pointerId !== pointerId) return;
         const moveX = e.clientX - startX, moveY = e.clientY - startY;
         if (!sorting && (Math.abs(moveX) > 10 || Math.abs(moveY) > 10)) { clearTimeout(timer); timer=null; }
         if (!sorting) return;
         e.preventDefault();
         card.style.transform = `translateY(${moveY}px) scale(1.025)`;
-        clearMarks();
-        const below = document.elementFromPoint(e.clientX, e.clientY)?.closest(".task-shell");
-        if (!below || below === shell) { lastTarget = null; return; }
-        const sameBody = below.parentElement === shell.parentElement;
-        if (!sameBody) { lastTarget = null; return; }
-        const r = below.getBoundingClientRect();
-        const after = e.clientY > r.top + r.height/2;
-        below.classList.add(after ? "drop-after" : "drop-before");
-        lastTarget = { el: below, after };
+        markTarget(e.clientY);
       });
       const end = () => {
         clearTimeout(timer); timer=null;
+        if (pointerId !== null) { try { card.releasePointerCapture(pointerId); } catch (_) {} }
+        pointerId = null;
         if (!sorting) return;
         sorting = false;
         card.classList.remove("sorting"); shell.classList.remove("dragging");
-        card.style.transition = "transform .18s ease"; card.style.transform = "translateX(0)";
+        document.body.classList.remove("drag-lock");
+        card.style.transition = "transform .18s ease";
+        card.style.transform = "translateX(0)";
+        card.style.pointerEvents = "";
         if (lastTarget) {
           const parent = shell.parentElement;
           if (lastTarget.after) parent.insertBefore(shell, lastTarget.el.nextSibling);
@@ -457,8 +502,46 @@
       };
       card.addEventListener("pointerup", end);
       card.addEventListener("pointercancel", end);
+      card.addEventListener("lostpointercapture", end);
       card.addEventListener("pointerleave", () => { if (!sorting) clearTimeout(timer); });
     }
+
+    function addRenameGesture(txtEl, task) {
+      let lastTap = 0, downX = 0, downY = 0;
+      const begin = (e) => { e.preventDefault(); e.stopPropagation(); startRename(task, txtEl); };
+      txtEl.addEventListener("dblclick", begin);
+      txtEl.addEventListener("pointerdown", e => { downX = e.clientX; downY = e.clientY; });
+      txtEl.addEventListener("pointerup", e => {
+        if (Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) return;
+        const now = Date.now();
+        if (now - lastTap < 340) { lastTap = 0; begin(e); }
+        else lastTap = now;
+      });
+    }
+
+    function startRename(task, txtEl) {
+      if (!txtEl || txtEl.dataset.editing === "1") return;
+      txtEl.dataset.editing = "1";
+      const input = document.createElement("input");
+      input.className = "rename-input";
+      input.value = task.text;
+      input.setAttribute("aria-label", "重命名任务");
+      const finish = (commit) => {
+        const value = input.value.trim();
+        if (commit && value) task.text = value;
+        save(); render();
+      };
+      input.addEventListener("pointerdown", e => e.stopPropagation());
+      input.addEventListener("click", e => e.stopPropagation());
+      input.addEventListener("keydown", e => {
+        if (e.key === "Enter") finish(true);
+        if (e.key === "Escape") finish(false);
+      });
+      input.addEventListener("blur", () => finish(true));
+      txtEl.replaceWith(input);
+      input.focus(); input.select();
+    }
+
     function saveOrderFromGroup(body) {
       const ids = [...body.querySelectorAll(".task-shell")].map(el => el.dataset.id);
       const base = Date.now();
