@@ -22,6 +22,8 @@
       --shadow: 0 12px 32px rgba(39, 125, 104, .12);
       --danger-soft: #FFE3EE;
       --danger-text: #E783A3;
+      --pin-soft: #DFF2FF;
+      --pin-text: #4B8DB8;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { min-height: 100%; }
@@ -88,20 +90,21 @@
     .task-shell.dragging { overflow: visible; z-index: 30; }
     .task-action {
       position: absolute; inset: 0 0 0 auto; width: 33%;
-      display: flex; align-items: center; justify-content: flex-end;
-      padding-right: 18px; background: linear-gradient(90deg, transparent, #fff0f5);
+      display: flex; align-items: center; justify-content: flex-end; gap: 7px;
+      padding-right: 12px; background: linear-gradient(90deg, transparent, #eef8ff);
       opacity: 0; pointer-events: none; transition: opacity .12s ease;
     }
     .task-shell.open .task-action,
     .task-shell.swiping .task-action { opacity: 1; pointer-events: auto; }
     .task-shell.dragging .task-action { opacity: 0 !important; pointer-events: none !important; }
-    .xbtn {
+    .xbtn, .pinbtn {
       width: 34px; height: 34px; border-radius: 50%; border: none;
-      background: var(--danger-soft); color: var(--danger-text);
       font-size: 16px; line-height: 1; padding: 0;
       display: flex; align-items: center; justify-content: center;
       font-weight: 750;
     }
+    .xbtn { background: var(--danger-soft); color: var(--danger-text); }
+    .pinbtn { background: var(--pin-soft); color: var(--pin-text); }
     .task {
       position: relative; z-index: 1;
       display: grid; grid-template-columns: 30px 1fr 28px; gap: 10px; align-items: start;
@@ -174,10 +177,15 @@
     .due { color: var(--muted); background: #f3faf7; }
     .soon { color: #9a6d2d; background: #fff3dd; }
 
-    .days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .days {
+      display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px;
+      scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    .days::-webkit-scrollbar { display: none; }
     .day {
+      flex: 0 0 62px; min-height: 67px;
       border: 1px solid var(--line); background: white; border-radius: 16px; padding: 10px 6px;
-      text-align: center; color: var(--text);
+      text-align: center; color: var(--text); scroll-snap-align: center;
     }
     .day.active { background: var(--mint); border-color: var(--mint); color: #113a31; font-weight: 750; }
     .day .dow { font-size: 11px; color: inherit; opacity: .72; }
@@ -211,23 +219,25 @@
       display: flex; align-items: center; justify-content: center;
     }
     .sticky-shell { position: relative; border-radius: 18px; overflow: hidden; min-height: 118px; }
+    .sticky-shell.dragging { overflow: visible; z-index: 30; }
     .sticky-action {
       position: absolute; inset: 0 0 0 auto; width: 33%;
-      display: flex; align-items: center; justify-content: flex-end;
-      padding-right: 12px; background: linear-gradient(90deg, transparent, #fff0f5);
+      display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 7px;
+      padding-right: 4px; background: linear-gradient(90deg, transparent, #eef8ff);
       opacity: 0; pointer-events: none; transition: opacity .12s ease;
     }
     .sticky-shell.open .sticky-action,
     .sticky-shell.swiping .sticky-action { opacity: 1; pointer-events: auto; }
+    .sticky-shell.dragging .sticky-action { opacity: 0 !important; pointer-events: none !important; }
     .sticky-note {
       position: relative; z-index: 1;
       min-height: 118px; height: 118px; width: 100%;
       border: 1px solid var(--line); border-radius: 18px;
-      background: #dff8ef; color: var(--text); padding: 12px;
+      background: #dff8ef; color: var(--text); padding: 12px 32px 12px 12px;
       box-shadow: 0 7px 18px rgba(47, 146, 120, .10);
       font-size: 14px; line-height: 1.45; text-align: left;
       white-space: pre-wrap; word-break: break-word;
-      overflow: hidden; touch-action: pan-y;
+      overflow: hidden; touch-action: pan-y; cursor: pointer;
       transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
     }
     .sticky-note.empty-note {
@@ -235,6 +245,17 @@
       color: var(--muted); display: flex; align-items: center; justify-content: center; text-align: center;
     }
     .sticky-note.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
+    .sticky-note.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
+    .sticky-text { display: block; max-height: 92px; overflow: hidden; }
+    .sticky-drag-handle {
+      position: absolute; right: 6px; bottom: 6px;
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,.62); color: var(--muted);
+      font-size: 18px; font-weight: 900; line-height: 1;
+      touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+    }
+    .sticky-drag-handle:active { background: #eefcf7; color: var(--mint-dark); cursor: grabbing; }
     .sticky-input {
       width: 100%; height: 100%; min-height: 92px; border: none; border-radius: 12px;
       background: rgba(255,255,255,.55); color: var(--text); padding: 8px;
@@ -259,7 +280,7 @@
     @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @media (min-width: 720px) {
       body { padding-top: 26px; }
-      .days { grid-template-columns: repeat(10, 1fr); }
+      .day { flex-basis: 66px; }
       .quick-row { grid-template-columns: 1fr 1fr 1fr; }
     }
   </style>
@@ -290,7 +311,7 @@
     <section id="pageCalendar" class="page">
       <div class="panel">
         <div class="topline">
-          <strong>近 10 天</strong>
+          <strong>前后两个月</strong>
           <span class="count" id="selectedDateText"></span>
         </div>
         <div class="days" id="days"></div>
@@ -303,7 +324,7 @@
       <div class="panel">
         <div class="topline">
           <strong>便利贴</strong>
-          <span class="count" id="notesCount">0/9</span>
+          <span class="count" id="notesCount">0/12</span>
         </div>
         <div class="sticky-grid" id="stickyGrid"></div>
       </div>
@@ -327,7 +348,7 @@
           <select id="dateMode">
             <option value="today">今天</option>
             <option value="tomorrow">明天</option>
-            <option value="ten">近10天内选一天</option>
+            <option value="ten">前后两个月内选一天</option>
             <option value="custom">指定日期</option>
           </select>
           <select id="tenDaySelect" style="display:none;"></select>
@@ -365,6 +386,7 @@
       life: "🌿 生活小样", study: "🧩 学业拼图", repay: "💰 还款进度", balance: "⏰ 尾款提醒"
     };
     const MS = 86400000;
+    const MAX_NOTES = 12;
     let selectedDate = todayKey();
     let addReturnPage = "Today";
     let tasks = loadTasks();
@@ -373,12 +395,12 @@
 
     // Prevent iOS/Android browsers from selecting task text during swipe or sorting gestures.
     document.addEventListener("selectstart", e => {
-      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell")) {
+      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell,.sticky-shell")) {
         if (!e.target.closest("input, textarea, select, [contenteditable='true']")) e.preventDefault();
       }
     });
     document.addEventListener("contextmenu", e => {
-      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell")) {
+      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell,.sticky-shell")) {
         if (!e.target.closest("input, textarea, select, [contenteditable='true']")) e.preventDefault();
       }
     });
@@ -420,6 +442,23 @@
       return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
     }
     function dayDiff(key) { return Math.round((parseKey(key) - parseKey(todayKey())) / MS); }
+    function addMonthsToDate(d, n) {
+      const first = new Date(d.getFullYear(), d.getMonth() + n, 1);
+      const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+      return new Date(first.getFullYear(), first.getMonth(), Math.min(d.getDate(), lastDay));
+    }
+    function rangeStartKey() { return toKey(addMonthsToDate(parseKey(todayKey()), -2)); }
+    function rangeEndKey() { return toKey(addMonthsToDate(parseKey(todayKey()), 2)); }
+    function inDateRange(key) {
+      const d = parseKey(key);
+      return d >= parseKey(rangeStartKey()) && d <= parseKey(rangeEndKey());
+    }
+    function dateRangeKeys() {
+      const keys = [];
+      const end = parseKey(rangeEndKey());
+      for (let d = parseKey(rangeStartKey()); d <= end; d.setDate(d.getDate() + 1)) keys.push(toKey(d));
+      return keys;
+    }
     function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
     function defaultTasks() {
@@ -470,7 +509,7 @@
       const raw = localStorage.getItem(notesKey);
       if (!raw) return [];
       try {
-        return JSON.parse(raw).map(normalizeNote).filter(n => n.text).slice(0, 9);
+        return JSON.parse(raw).map(normalizeNote).filter(n => n.text).slice(0, MAX_NOTES);
       } catch (_) {
         return [];
       }
@@ -500,29 +539,26 @@
     function renderDays() {
       const box = document.getElementById("days"); box.innerHTML = "";
       const names = ["日","一","二","三","四","五","六"];
-      for (let i=0; i<10; i++) {
-        const key = addDays(todayKey(), i);
+      dateRangeKeys().forEach(key => {
         const d = parseKey(key);
         const has = tasks.some(t => t.date === key && !t.done);
         const el = document.createElement("button");
         el.className = "day" + (key === selectedDate ? " active" : "");
-        el.innerHTML = `<div class="dow">${i===0 ? "今天" : "周" + names[d.getDay()]}</div><div class="num">${d.getDate()}</div>${has ? '<div class="dot"></div>' : ''}`;
+        const dow = key === todayKey() ? "今天" : "周" + names[d.getDay()];
+        el.innerHTML = `<div class="dow">${dow}</div><div class="num">${d.getDate()}</div>${has ? '<div class="dot"></div>' : ''}`;
         el.onclick = () => { selectedDate = key; render(); };
         box.appendChild(el);
-      }
+      });
+      setTimeout(() => {
+        const active = box.querySelector(".day.active");
+        if (active) active.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      }, 0);
     }
     function renderCalendar() {
-      document.getElementById("selectedDateText").textContent = "";
-      const box = document.getElementById("calendarList");
+      document.getElementById("selectedDateText").textContent = dateText(selectedDate);
       const list = tasks.filter(t => t.date === selectedDate);
-      if (!list.length && selectedDate !== todayKey()) {
-        box.innerHTML = calendarAddPanel(selectedDate);
-        return;
-      }
       drawGroupedList("calendarList", list, "这一天没有任务。", true, "calendar");
-      if (selectedDate !== todayKey()) {
-        box.insertAdjacentHTML("beforeend", calendarAddPanel(selectedDate));
-      }
+      document.getElementById("calendarList").insertAdjacentHTML("beforeend", calendarAddPanel(selectedDate));
     }
 
     function calendarAddPanel(key) {
@@ -544,7 +580,7 @@
       const dateMode = document.getElementById("dateMode");
       const tenDaySelect = document.getElementById("tenDaySelect");
       const customDate = document.getElementById("customDate");
-      if (diff >= 0 && diff < 10) {
+      if (inDateRange(key)) {
         dateMode.value = "ten";
         tenDaySelect.value = key;
         tenDaySelect.style.display = "block";
@@ -581,8 +617,11 @@
       const index = tasks.findIndex(t => t.id === task.id);
       const shell = document.createElement("div"); shell.className = "task-shell"; shell.dataset.id = task.id;
       const action = document.createElement("div"); action.className = "task-action";
+      const pin = document.createElement("button"); pin.className = "pinbtn"; pin.textContent = "↑"; pin.setAttribute("aria-label", "置顶");
+      pin.onclick = e => { e.stopPropagation(); pinTask(task.id); };
       const x = document.createElement("button"); x.className = "xbtn"; x.textContent = "✕"; x.setAttribute("aria-label", "删除");
-      x.onclick = () => removeTask(index, shell);
+      x.onclick = e => { e.stopPropagation(); removeTask(index, shell); };
+      action.appendChild(pin);
       action.appendChild(x);
       const el = document.createElement("div"); el.className = "task" + (task.done ? " done" : "");
       const diff = dayDiff(task.date);
@@ -725,12 +764,12 @@
       const grid = document.getElementById("stickyGrid");
       if (!grid) return;
       grid.innerHTML = "";
-      document.getElementById("notesCount").textContent = `${notes.length}/9`;
+      document.getElementById("notesCount").textContent = `${notes.length}/${MAX_NOTES}`;
       const visibleSlots = Math.max(1, notes.length);
       for (let i=0; i<visibleSlots; i++) {
         grid.appendChild(stickyElement(i, notes[i]));
       }
-      if (notes.length < 9) {
+      if (notes.length < MAX_NOTES) {
         const add = document.createElement("button");
         add.type = "button";
         add.className = "sticky-add";
@@ -744,23 +783,52 @@
     function stickyElement(index, note) {
       const shell = document.createElement("div");
       shell.className = "sticky-shell" + (note ? "" : " empty-shell");
+      if (note) shell.dataset.id = note.id;
       const action = document.createElement("div");
       action.className = "sticky-action";
+      const pin = document.createElement("button");
+      pin.className = "pinbtn";
+      pin.textContent = "↑";
+      pin.setAttribute("aria-label", "置顶便利贴");
+      pin.onclick = e => { e.stopPropagation(); pinNote(index); };
       const x = document.createElement("button");
       x.className = "xbtn";
       x.textContent = "✕";
       x.setAttribute("aria-label", "删除便利贴");
       x.onclick = e => { e.stopPropagation(); removeNote(index, shell); };
+      action.appendChild(pin);
       action.appendChild(x);
 
-      const card = document.createElement("button");
-      card.type = "button";
+      const card = document.createElement("div");
       card.className = "sticky-note" + (note ? "" : " empty-note");
-      card.textContent = note ? note.text : "写下一张便利贴……";
-      card.onclick = () => {
-        if (card.dataset.swiped === "1") return;
+      card.setAttribute("role", "button");
+      card.tabIndex = 0;
+      if (note) {
+        const text = document.createElement("div");
+        text.className = "sticky-text";
+        text.textContent = note.text;
+        const handle = document.createElement("div");
+        handle.className = "sticky-drag-handle";
+        handle.setAttribute("role", "button");
+        handle.setAttribute("aria-label", "拖动便利贴排序");
+        handle.title = "拖动排序";
+        handle.textContent = "·";
+        card.appendChild(text);
+        card.appendChild(handle);
+        addStickySort(shell, card, handle);
+      } else {
+        card.textContent = "写下一张便利贴……";
+      }
+      card.onclick = e => {
+        if (card.dataset.swiped === "1" || e.target.closest(".sticky-drag-handle")) return;
         startNoteEdit(index, card);
       };
+      card.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          startNoteEdit(index, card);
+        }
+      });
 
       addStickySwipe(card, shell, index);
       shell.appendChild(action);
@@ -790,7 +858,7 @@
         } else if (notes[index]) {
           notes.splice(index, 1);
         }
-        notes = notes.filter(Boolean).slice(0, 9);
+        notes = notes.filter(Boolean).slice(0, MAX_NOTES);
         save(); renderNotes();
       };
       input.addEventListener("pointerdown", e => e.stopPropagation());
@@ -808,7 +876,7 @@
       let startX=0, startY=0, dx=0, open=false, dragging=false, moved=false;
       const maxOpen = () => Math.min(shell.offsetWidth * .33, 96);
       card.addEventListener("touchstart", e => {
-        if (!notes[index]) return;
+        if (!notes[index] || e.target.closest(".sticky-drag-handle")) return;
         startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; moved = false; dragging = true; card.style.transition = "none";
       }, {passive:true});
       card.addEventListener("touchmove", e => {
@@ -834,6 +902,95 @@
           setTimeout(() => { dx = 0; delete card.dataset.swiped; }, 180);
         }
       });
+    }
+
+    function addStickySort(shell, card, handle) {
+      let sorting=false, startX=0, startY=0, pointerId=null, lastTarget=null;
+      const clearMarks = () => document.querySelectorAll(".drop-before,.drop-after").forEach(e => e.classList.remove("drop-before","drop-after"));
+      const markTarget = (clientX, clientY) => {
+        clearMarks(); lastTarget = null;
+        const grid = shell.parentElement;
+        const siblings = [...grid.querySelectorAll(".sticky-shell:not(.empty-shell)")].filter(el => el !== shell);
+        if (!siblings.length) return;
+        let closest = siblings[0], min = Infinity;
+        siblings.forEach(item => {
+          const r = item.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const cy = r.top + r.height / 2;
+          const dist = Math.hypot(clientX - cx, clientY - cy);
+          if (dist < min) { min = dist; closest = item; }
+        });
+        const r = closest.getBoundingClientRect();
+        const after = clientY > r.top + r.height / 2 || (Math.abs(clientY - (r.top + r.height / 2)) < r.height / 3 && clientX > r.left + r.width / 2);
+        closest.classList.add(after ? "drop-after" : "drop-before");
+        lastTarget = { el: closest, after };
+      };
+      const startSort = e => {
+        sorting = true;
+        shell.classList.add("dragging");
+        card.classList.add("sorting");
+        document.body.classList.add("drag-lock");
+        card.style.transition = "none";
+        if (window.getSelection) window.getSelection().removeAllRanges();
+        markTarget(e.clientX, e.clientY);
+        if (navigator.vibrate) navigator.vibrate(12);
+      };
+      handle.addEventListener("pointerdown", e => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        pointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+        try { handle.setPointerCapture(pointerId); } catch (_) {}
+        startSort(e);
+      });
+      handle.addEventListener("pointermove", e => {
+        if (pointerId !== null && e.pointerId !== pointerId) return;
+        if (!sorting) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const moveX = e.clientX - startX;
+        const moveY = e.clientY - startY;
+        card.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.025)`;
+        markTarget(e.clientX, e.clientY);
+      });
+      const end = e => {
+        if (e && pointerId !== null && e.pointerId !== undefined && e.pointerId !== pointerId) return;
+        if (pointerId !== null) { try { handle.releasePointerCapture(pointerId); } catch (_) {} }
+        pointerId = null;
+        if (!sorting) return;
+        sorting = false;
+        card.classList.remove("sorting");
+        shell.classList.remove("dragging");
+        document.body.classList.remove("drag-lock");
+        card.style.transition = "transform .18s ease";
+        card.style.transform = "translateX(0)";
+        if (lastTarget) {
+          const grid = shell.parentElement;
+          if (lastTarget.after) grid.insertBefore(shell, lastTarget.el.nextSibling);
+          else grid.insertBefore(shell, lastTarget.el);
+          saveNotesOrderFromGrid(grid);
+        }
+        clearMarks(); lastTarget = null;
+        setTimeout(renderNotes, 40);
+      };
+      handle.addEventListener("pointerup", end);
+      handle.addEventListener("pointercancel", end);
+      handle.addEventListener("lostpointercapture", end);
+    }
+
+    function saveNotesOrderFromGrid(grid) {
+      const orderedIds = [...grid.querySelectorAll(".sticky-shell:not(.empty-shell)")].map(el => el.dataset.id).filter(Boolean);
+      notes = orderedIds.map(id => notes.find(n => n.id === id)).filter(Boolean);
+      save();
+    }
+
+    function pinNote(index) {
+      if (!notes[index]) return;
+      const [note] = notes.splice(index, 1);
+      notes.unshift(note);
+      save(); renderNotes();
     }
 
     function removeNote(index, shell) {
@@ -889,6 +1046,14 @@
       save();
     }
     function toggleTask(index) { tasks[index].done = !tasks[index].done; render(); }
+    function pinTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      const same = tasks.filter(t => t.id !== id && t.date === task.date && t.category === task.category);
+      const minOrder = same.length ? Math.min(...same.map(t => t.order)) : Date.now();
+      task.order = minOrder - 1;
+      save(); render();
+    }
     function removeTask(index, shell) {
       const card = shell.querySelector(".task"); card.classList.add("removing");
       setTimeout(() => { tasks.splice(index,1); render(); }, 160);
@@ -920,14 +1085,16 @@
     function clearDone() { tasks = tasks.filter(t => !t.done); render(); }
     function fillDateSelect() {
       const sel = document.getElementById("tenDaySelect");
-      if (sel.dataset.ready === todayKey()) return;
+      const readyKey = `${rangeStartKey()}_${rangeEndKey()}`;
+      if (sel.dataset.ready === readyKey) return;
       sel.innerHTML = "";
-      for (let i=0; i<10; i++) {
-        const key = addDays(todayKey(), i);
-        const opt = document.createElement("option"); opt.value = key; opt.textContent = `${i===0 ? "今天" : shortDate(key)}｜${dateText(key)}`;
+      dateRangeKeys().forEach(key => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = `${key === todayKey() ? "今天" : shortDate(key)}｜${dateText(key)}`;
         sel.appendChild(opt);
-      }
-      sel.dataset.ready = todayKey();
+      });
+      sel.dataset.ready = readyKey;
     }
     document.getElementById("dateMode").addEventListener("change", e => {
       document.getElementById("tenDaySelect").style.display = e.target.value === "ten" ? "block" : "none";
