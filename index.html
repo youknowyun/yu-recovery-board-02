@@ -89,7 +89,7 @@
     }
     .task.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
     .task.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
-    body.drag-lock { overflow: hidden; user-select: none; }
+    body.drag-lock { overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .drop-before { border-top: 2px solid var(--mint-dark); padding-top: 7px; }
     .drop-after { border-bottom: 2px solid var(--mint-dark); padding-bottom: 7px; }
     .check {
@@ -99,6 +99,37 @@
     .task.done { opacity: .58; background: #f7fbf9; }
     .task.done .check { background: var(--mint-dark); }
     .task.done .txt { text-decoration: line-through; color: var(--muted); }
+
+    /* iPhone / mobile: avoid accidental text selection while swiping or long-press sorting. */
+    .task,
+    .task *,
+    .task-shell,
+    .task-shell *,
+    .group-head,
+    .day,
+    .tab,
+    button {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+    input,
+    textarea,
+    select,
+    .rename-input,
+    [contenteditable="true"] {
+      -webkit-user-select: text;
+      user-select: text;
+      -webkit-touch-callout: default;
+    }
+    body.drag-lock,
+    body.drag-lock * {
+      -webkit-user-select: none !important;
+      user-select: none !important;
+      -webkit-touch-callout: none !important;
+      overscroll-behavior: none;
+    }
+
     .txt { font-size: 15px; line-height: 1.35; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .rename-input { width: 100%; min-height: 34px; padding: 6px 8px; border-radius: 10px; font-size: 15px; line-height: 1.35; }
     .note { color: var(--muted); font-size: 13px; line-height: 1.45; margin-top: 5px; white-space: pre-wrap; }
@@ -246,6 +277,18 @@
     let selectedDate = todayKey();
     let tasks = loadTasks();
     let collapsed = JSON.parse(localStorage.getItem(collapsedKey) || "{}");
+
+    // Prevent iOS/Android browsers from selecting task text during swipe or sorting gestures.
+    document.addEventListener("selectstart", e => {
+      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell")) {
+        if (!e.target.closest("input, textarea, select, [contenteditable='true']")) e.preventDefault();
+      }
+    });
+    document.addEventListener("contextmenu", e => {
+      if (document.body.classList.contains("drag-lock") || e.target.closest(".task-shell")) {
+        if (!e.target.closest("input, textarea, select, [contenteditable='true']")) e.preventDefault();
+      }
+    });
 
     function iconData() {
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'>
@@ -461,6 +504,8 @@
         document.body.classList.add("drag-lock");
         card.style.transition = "none";
         card.style.pointerEvents = "none";
+        card.style.touchAction = "none";
+        if (window.getSelection) window.getSelection().removeAllRanges();
         if (navigator.vibrate) navigator.vibrate(12);
       };
       card.addEventListener("pointerdown", e => {
@@ -469,6 +514,7 @@
         pointerId = e.pointerId;
         startX = e.clientX; startY = e.clientY;
         try { card.setPointerCapture(pointerId); } catch (_) {}
+        if (window.getSelection) window.getSelection().removeAllRanges();
         timer = setTimeout(startSort, 520);
       });
       card.addEventListener("pointermove", e => {
@@ -491,6 +537,8 @@
         card.style.transition = "transform .18s ease";
         card.style.transform = "translateX(0)";
         card.style.pointerEvents = "";
+        card.style.touchAction = "";
+        if (window.getSelection) window.getSelection().removeAllRanges();
         if (lastTarget) {
           const parent = shell.parentElement;
           if (lastTarget.after) parent.insertBefore(shell, lastTarget.el.nextSibling);
