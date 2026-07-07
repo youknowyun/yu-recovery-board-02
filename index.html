@@ -240,7 +240,7 @@
       position: relative; z-index: 1;
       min-height: 118px; height: 118px; width: 100%;
       border: 1px solid var(--line); border-radius: 18px;
-      background: #dff8ef; color: var(--text); padding: 12px 32px 12px 12px;
+      background: #dff8ef; color: var(--text); padding: 12px;
       box-shadow: 0 7px 18px rgba(47, 146, 120, .10);
       font-size: 14px; line-height: 1.45; text-align: left;
       white-space: pre-wrap; word-break: break-word;
@@ -253,16 +253,28 @@
     }
     .sticky-note.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
     .sticky-note.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
-    .sticky-text { display: block; max-height: 92px; overflow: hidden; }
+    .sticky-text {
+      display: block; height: 100%; max-height: none;
+      overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      padding: 0 2px 14px 0; box-sizing: border-box;
+      scrollbar-width: none;
+    }
+    .sticky-text::-webkit-scrollbar { display: none; }
     .sticky-drag-handle {
-      position: absolute; right: 9px; bottom: 9px;
-      width: 12px; height: 12px; border-radius: 50%;
+      position: absolute; right: 6px; bottom: 6px;
+      width: 14px; height: 14px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(35, 125, 104, .34); color: transparent;
+      background: transparent; color: transparent;
       font-size: 0; line-height: 1;
       touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
     }
-    .sticky-drag-handle:active { background: var(--mint-dark); cursor: grabbing; }
+    .sticky-drag-handle::after {
+      content: ""; width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(35, 125, 104, .52);
+    }
+    .sticky-drag-handle:active { background: transparent; cursor: grabbing; }
+    .sticky-drag-handle:active::after { background: var(--mint-dark); }
     .sticky-input {
       width: 100%; height: 100%; min-height: 92px; border: none; border-radius: 12px;
       background: rgba(255,255,255,.55); color: var(--text); padding: 8px;
@@ -397,7 +409,7 @@
     const MS = 86400000;
     const MAX_NOTES = 12;
     let selectedDate = todayKey();
-    let calendarWindowOffset = 0;
+    let calendarWindowOffset = -2;
     let addReturnPage = "Today";
     let tasks = loadTasks();
     let notes = loadNotes();
@@ -465,7 +477,7 @@
     }
     function calendarEndKey() {
       const s = parseKey(calendarStartKey());
-      return toKey(new Date(s.getFullYear(), s.getMonth() + 2, 0));
+      return toKey(new Date(s.getFullYear(), s.getMonth() + 3, 0));
     }
     function inDateRange(key) {
       const d = parseKey(key);
@@ -483,13 +495,17 @@
       for (let d = parseKey(calendarStartKey()); d <= end; d.setDate(d.getDate() + 1)) keys.push(toKey(d));
       return keys;
     }
-    function shiftCalendarWindow(delta) {
-      calendarWindowOffset += delta;
-      selectedDate = toKey(addMonthsToDate(parseKey(selectedDate), delta));
+    function shiftCalendarWindow(direction) {
+      calendarWindowOffset = direction > 0 ? 0 : -2;
+      if (!inCalendarWindow(selectedDate)) selectedDate = todayKey();
       render();
     }
+    function inCalendarWindow(key) {
+      const d = parseKey(key);
+      return d >= parseKey(calendarStartKey()) && d <= parseKey(calendarEndKey());
+    }
     function jumpToToday() {
-      calendarWindowOffset = 0;
+      calendarWindowOffset = -2;
       selectedDate = todayKey();
       render();
     }
@@ -916,7 +932,10 @@
       card.addEventListener("touchmove", e => {
         if (!dragging || !notes[index]) return;
         const x = e.touches[0].clientX, y = e.touches[0].clientY;
-        if (Math.abs(y-startY) > Math.abs(x-startX) + 8) return;
+        if (Math.abs(y-startY) > Math.abs(x-startX) + 8) {
+          if (Math.abs(y-startY) > 7) moved = true;
+          return;
+        }
         dx = x - startX; if (Math.abs(dx) > 7) moved = true;
         let next = open ? -maxOpen() + dx : dx;
         next = Math.max(-maxOpen(), Math.min(0, next));
@@ -1156,7 +1175,7 @@
         const dx = t.clientX - sx;
         const dy = t.clientY - sy;
         if (Math.abs(dx) < 58 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-        shiftCalendarWindow(dx < 0 ? 2 : -2);
+        shiftCalendarWindow(dx < 0 ? 1 : -1);
       }, { passive: true });
     })();
 
