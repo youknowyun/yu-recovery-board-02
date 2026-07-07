@@ -188,7 +188,7 @@
       display: block;
       padding: 12px 0 2px;
       overflow: visible;
-      touch-action: pan-y;
+      touch-action: auto;
     }
     .calendar-jump,
     .calendar-add-inline {
@@ -202,6 +202,7 @@
     .calendar-month {
       border: 1px solid var(--line); border-radius: 20px;
       background: rgba(255,255,255,.62); padding: 10px;
+      touch-action: none; overscroll-behavior: contain;
     }
     .calendar-month-title {
       display: flex; align-items: baseline; justify-content: space-between;
@@ -641,11 +642,6 @@
       section.className = "calendar-month";
       section.dataset.month = monthKey(monthDate);
 
-      const title = document.createElement("div");
-      title.className = "calendar-month-title";
-      title.innerHTML = `<span></span><small>上滑下个月 / 下滑上个月</small>`;
-      section.appendChild(title);
-
       const weekRow = document.createElement("div");
       weekRow.className = "week-row";
       weekNames.forEach(name => {
@@ -667,7 +663,7 @@
         el.className = "day" + (key === todayKey() ? " today" : "") + (key === selectedDate ? " active" : "");
         const label = key === todayKey() ? "今天" : (day === 1 ? `${month + 1}月` : "");
         el.innerHTML = `<div class="dow">${label}</div><div class="num">${day}</div>${has ? '<div class="dot"></div>' : ''}`;
-        el.onclick = () => { if (box.dataset.swiped === "1") return; selectedDate = key; render(); };
+        el.onclick = () => { if (section.dataset.swiped === "1") return; selectedDate = key; render(); };
         grid.appendChild(el);
       }
       const totalCells = firstDay + lastDate;
@@ -675,7 +671,7 @@
       for (let i = 0; i < trailing; i++) grid.appendChild(blankDay());
       section.appendChild(grid);
       box.appendChild(section);
-      attachCalendarSwipe(box);
+      attachCalendarSwipe(section);
     }
     function blankDay() {
       const el = document.createElement("div");
@@ -686,8 +682,10 @@
     function renderCalendar() {
       document.getElementById("selectedDateText").textContent = dateText(selectedDate);
       const list = tasks.filter(t => t.date === selectedDate);
-      drawGroupedList("calendarList", list, "这一天没有任务。", true, "calendar");
-      document.getElementById("calendarList").insertAdjacentHTML("beforeend", calendarAddPanel(selectedDate));
+      const box = document.getElementById("calendarList");
+      if (list.length) drawGroupedList("calendarList", list, "", true, "calendar");
+      else box.innerHTML = "";
+      box.insertAdjacentHTML("beforeend", calendarAddPanel(selectedDate));
     }
 
     function calendarAddPanel(key) {
@@ -1244,19 +1242,18 @@
 
     function attachCalendarSwipe(box) {
       let startX = 0, startY = 0;
-      box.ontouchstart = e => {
+      box.addEventListener("touchstart", e => {
         if (e.touches.length !== 1) return;
         startX = e.touches[0].clientX;
         startY = e.touches[0].clientY;
         delete box.dataset.swiped;
-      };
-      box.ontouchmove = e => {
+      }, { passive: true });
+      box.addEventListener("touchmove", e => {
         if (!e.touches.length) return;
-        const dx = e.touches[0].clientX - startX;
-        const dy = e.touches[0].clientY - startY;
-        if (Math.abs(dy) > 18 && Math.abs(dy) > Math.abs(dx) * 1.25) e.preventDefault();
-      };
-      box.ontouchend = e => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, { passive: false });
+      box.addEventListener("touchend", e => {
         if (!e.changedTouches.length) return;
         const dx = e.changedTouches[0].clientX - startX;
         const dy = e.changedTouches[0].clientY - startY;
@@ -1265,7 +1262,7 @@
           switchCalendarMonth(dy < 0 ? 1 : -1);
           setTimeout(() => { delete box.dataset.swiped; }, 240);
         }
-      };
+      }, { passive: true });
     }
 
     // 日历一次只显示一个完整月份；上下滑动切换月份。
