@@ -178,19 +178,26 @@
     .soon { color: #9a6d2d; background: #fff3dd; }
 
     .days {
-      display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px;
+      display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, 68px);
+      grid-auto-columns: 58px; gap: 8px; overflow-x: auto; padding: 2px 2px 8px;
       scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none;
     }
     .days::-webkit-scrollbar { display: none; }
+    .calendar-jump {
+      width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line);
+      background: white; color: var(--mint-dark); padding: 0; display: grid; place-items: center;
+      box-shadow: 0 4px 14px rgba(47, 146, 120, .05);
+    }
+    .calendar-jump svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; }
     .day {
-      flex: 0 0 62px; min-height: 67px;
-      border: 1px solid var(--line); background: white; border-radius: 16px; padding: 10px 6px;
+      min-height: 68px;
+      border: 1px solid var(--line); background: white; border-radius: 16px; padding: 8px 5px;
       text-align: center; color: var(--text); scroll-snap-align: center;
     }
     .day.active { background: var(--mint); border-color: var(--mint); color: #113a31; font-weight: 750; }
-    .day .dow { font-size: 11px; color: inherit; opacity: .72; }
-    .day .num { font-size: 18px; margin-top: 2px; }
-    .day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--mint-dark); margin: 5px auto 0; opacity: .8; }
+    .day .dow { font-size: 10px; color: inherit; opacity: .72; min-height: 14px; }
+    .day .num { font-size: 18px; margin-top: 1px; }
+    .day .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--mint-dark); margin: 4px auto 0; opacity: .8; }
 
     .form { display: grid; gap: 10px; }
     input, select, button, textarea {
@@ -248,14 +255,14 @@
     .sticky-note.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
     .sticky-text { display: block; max-height: 92px; overflow: hidden; }
     .sticky-drag-handle {
-      position: absolute; right: 6px; bottom: 6px;
-      width: 26px; height: 26px; border-radius: 50%;
+      position: absolute; right: 9px; bottom: 9px;
+      width: 12px; height: 12px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,.62); color: var(--muted);
-      font-size: 18px; font-weight: 900; line-height: 1;
+      background: rgba(35, 125, 104, .34); color: transparent;
+      font-size: 0; line-height: 1;
       touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
     }
-    .sticky-drag-handle:active { background: #eefcf7; color: var(--mint-dark); cursor: grabbing; }
+    .sticky-drag-handle:active { background: var(--mint-dark); cursor: grabbing; }
     .sticky-input {
       width: 100%; height: 100%; min-height: 92px; border: none; border-radius: 12px;
       background: rgba(255,255,255,.55); color: var(--text); padding: 8px;
@@ -280,7 +287,7 @@
     @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     @media (min-width: 720px) {
       body { padding-top: 26px; }
-      .day { flex-basis: 66px; }
+      .days { grid-auto-columns: 64px; }
       .quick-row { grid-template-columns: 1fr 1fr 1fr; }
     }
   </style>
@@ -311,7 +318,9 @@
     <section id="pageCalendar" class="page">
       <div class="panel">
         <div class="topline">
-          <strong>前后两个月</strong>
+          <button class="calendar-jump" type="button" onclick="jumpToToday()" aria-label="回到今天">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><path d="M12 7v5l3 2"></path></svg>
+          </button>
           <span class="count" id="selectedDateText"></span>
         </div>
         <div class="days" id="days"></div>
@@ -388,6 +397,7 @@
     const MS = 86400000;
     const MAX_NOTES = 12;
     let selectedDate = todayKey();
+    let calendarWindowOffset = 0;
     let addReturnPage = "Today";
     let tasks = loadTasks();
     let notes = loadNotes();
@@ -449,6 +459,14 @@
     }
     function rangeStartKey() { return toKey(addMonthsToDate(parseKey(todayKey()), -2)); }
     function rangeEndKey() { return toKey(addMonthsToDate(parseKey(todayKey()), 2)); }
+    function calendarStartKey() {
+      const t = parseKey(todayKey());
+      return toKey(new Date(t.getFullYear(), t.getMonth() + calendarWindowOffset, 1));
+    }
+    function calendarEndKey() {
+      const s = parseKey(calendarStartKey());
+      return toKey(new Date(s.getFullYear(), s.getMonth() + 2, 0));
+    }
     function inDateRange(key) {
       const d = parseKey(key);
       return d >= parseKey(rangeStartKey()) && d <= parseKey(rangeEndKey());
@@ -458,6 +476,22 @@
       const end = parseKey(rangeEndKey());
       for (let d = parseKey(rangeStartKey()); d <= end; d.setDate(d.getDate() + 1)) keys.push(toKey(d));
       return keys;
+    }
+    function calendarKeys() {
+      const keys = [];
+      const end = parseKey(calendarEndKey());
+      for (let d = parseKey(calendarStartKey()); d <= end; d.setDate(d.getDate() + 1)) keys.push(toKey(d));
+      return keys;
+    }
+    function shiftCalendarWindow(delta) {
+      calendarWindowOffset += delta;
+      selectedDate = toKey(addMonthsToDate(parseKey(selectedDate), delta));
+      render();
+    }
+    function jumpToToday() {
+      calendarWindowOffset = 0;
+      selectedDate = todayKey();
+      render();
     }
     function uid() { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -539,12 +573,12 @@
     function renderDays() {
       const box = document.getElementById("days"); box.innerHTML = "";
       const names = ["日","一","二","三","四","五","六"];
-      dateRangeKeys().forEach(key => {
+      calendarKeys().forEach(key => {
         const d = parseKey(key);
         const has = tasks.some(t => t.date === key && !t.done);
         const el = document.createElement("button");
         el.className = "day" + (key === selectedDate ? " active" : "");
-        const dow = key === todayKey() ? "今天" : "周" + names[d.getDay()];
+        const dow = key === todayKey() ? "今天" : (d.getDate() === 1 ? `${d.getMonth()+1}月` : "周" + names[d.getDay()]);
         el.innerHTML = `<div class="dow">${dow}</div><div class="num">${d.getDate()}</div>${has ? '<div class="dot"></div>' : ''}`;
         el.onclick = () => { selectedDate = key; render(); };
         box.appendChild(el);
@@ -1109,6 +1143,23 @@
       box.classList.toggle("open");
       document.getElementById("noteToggle").textContent = box.classList.contains("open") ? "− 说明" : "+ 说明";
     };
+
+    (function enableCalendarSwipe() {
+      const box = document.getElementById("days");
+      let sx = 0, sy = 0;
+      box.addEventListener("touchstart", e => {
+        sx = e.touches[0].clientX;
+        sy = e.touches[0].clientY;
+      }, { passive: true });
+      box.addEventListener("touchend", e => {
+        const t = e.changedTouches[0];
+        const dx = t.clientX - sx;
+        const dy = t.clientY - sy;
+        if (Math.abs(dx) < 58 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+        shiftCalendarWindow(dx < 0 ? 2 : -2);
+      }, { passive: true });
+    })();
+
     function showPage(name) {
       document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
       document.getElementById("page" + name).classList.add("active");
