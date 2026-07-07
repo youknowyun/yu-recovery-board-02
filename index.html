@@ -51,6 +51,17 @@
     .fill { height: 100%; width: 0%; background: var(--mint); transition: width .28s ease; }
     .empty { color: var(--muted); text-align: center; padding: 24px 10px; line-height: 1.7; font-size: 14px; }
 
+    .home-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px;
+    }
+    .symbol-btn {
+      height: 46px; border-radius: 18px; border: 1px solid var(--line);
+      background: white; color: var(--mint-dark); font-size: 26px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 14px rgba(47, 146, 120, .05);
+    }
+    .symbol-btn.minus { color: var(--danger-text); background: #fff8fb; }
+
     .group { margin: 12px 0; }
     .group-head {
       display: flex; align-items: center; justify-content: space-between;
@@ -70,7 +81,11 @@
       position: absolute; inset: 0 0 0 auto; width: 33%;
       display: flex; align-items: center; justify-content: flex-end;
       padding-right: 18px; background: linear-gradient(90deg, transparent, #fff0f5);
+      opacity: 0; pointer-events: none; transition: opacity .12s ease;
     }
+    .task-shell.open .task-action,
+    .task-shell.swiping .task-action { opacity: 1; pointer-events: auto; }
+    .task-shell.dragging .task-action { opacity: 0 !important; pointer-events: none !important; }
     .xbtn {
       width: 34px; height: 34px; border-radius: 50%; border: none;
       background: var(--danger-soft); color: var(--danger-text);
@@ -113,6 +128,10 @@
     .task *,
     .task-shell,
     .task-shell *,
+    .sticky-note,
+    .sticky-note *,
+    .sticky-shell,
+    .sticky-shell *,
     .group-head,
     .day,
     .tab,
@@ -173,6 +192,42 @@
     .note-box { display: none; }
     .note-box.open { display: block; }
 
+
+    .sticky-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+    }
+    .sticky-shell { position: relative; border-radius: 18px; overflow: hidden; min-height: 118px; }
+    .sticky-action {
+      position: absolute; inset: 0 0 0 auto; width: 33%;
+      display: flex; align-items: center; justify-content: flex-end;
+      padding-right: 12px; background: linear-gradient(90deg, transparent, #fff0f5);
+      opacity: 0; pointer-events: none; transition: opacity .12s ease;
+    }
+    .sticky-shell.open .sticky-action,
+    .sticky-shell.swiping .sticky-action { opacity: 1; pointer-events: auto; }
+    .sticky-note {
+      position: relative; z-index: 1;
+      min-height: 118px; height: 118px; width: 100%;
+      border: 1px solid #f2e4a6; border-radius: 18px;
+      background: #fff8c7; color: #4b4322; padding: 12px;
+      box-shadow: 0 7px 18px rgba(143, 122, 35, .10);
+      font-size: 14px; line-height: 1.45; text-align: left;
+      white-space: pre-wrap; word-break: break-word;
+      overflow: hidden; touch-action: pan-y;
+      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    }
+    .sticky-note.empty-note {
+      background: rgba(255,255,255,.75); border-color: var(--line);
+      color: var(--muted); display: flex; align-items: center; justify-content: center; text-align: center;
+    }
+    .sticky-note.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
+    .sticky-input {
+      width: 100%; height: 100%; min-height: 92px; border: none; border-radius: 12px;
+      background: rgba(255,255,255,.55); color: #4b4322; padding: 8px;
+      font-size: 14px; line-height: 1.45; resize: none; box-shadow: none;
+    }
+    .sticky-hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 10px; }
+
     .nav {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
       padding: 9px 14px max(9px, env(safe-area-inset-bottom));
@@ -198,7 +253,7 @@
 <body>
   <main class="app">
     <header>
-      <div class="eyebrow" id="todayLine">TODAY</div>
+      <div class="eyebrow" id="todayLine">Today’s</div>
       <h1>Mintfield</h1>
     </header>
 
@@ -209,6 +264,10 @@
           <span class="count" id="todayCount">0/0</span>
         </div>
         <div class="bar"><div class="fill" id="todayFill"></div></div>
+        <div class="home-actions" aria-label="快捷操作">
+          <button class="symbol-btn" type="button" onclick="showPage('Add')" aria-label="添加任务">+</button>
+          <button class="symbol-btn minus" type="button" onclick="clearDone()" aria-label="清除已完成">−</button>
+        </div>
       </div>
       <div id="todayList"></div>
     </section>
@@ -224,9 +283,21 @@
       <div id="calendarList"></div>
     </section>
 
+
+    <section id="pageNotes" class="page">
+      <div class="panel">
+        <div class="topline">
+          <strong>便利贴</strong>
+          <span class="count" id="notesCount">0/9</span>
+        </div>
+        <div class="sticky-hint">每张建议 40–60 个中文字；短句最清楚，太长会压缩可读性。</div>
+        <div class="sticky-grid" id="stickyGrid"></div>
+      </div>
+    </section>
+
     <section id="pageAdd" class="page">
       <div class="panel">
-        <div class="topline"><strong>添加</strong><span class="count"></span></div>
+        <div class="topline"><strong>添加任务</strong><span class="count"></span></div>
         <div class="form" style="margin-top:12px;">
           <textarea id="taskText" placeholder="任务"></textarea>
           <button type="button" class="linkish" id="noteToggle">+ 说明</button>
@@ -255,9 +326,6 @@
           </div>
         </div>
       </div>
-      <div class="panel">
-        <button class="secondary" style="width:100%;" onclick="clearDone()">清除已完成</button>
-      </div>
     </section>
   </main>
 
@@ -265,13 +333,14 @@
     <div class="nav-inner">
       <button class="tab active" data-page="Today">今天</button>
       <button class="tab" data-page="Calendar">日历</button>
-      <button class="tab" data-page="Add">添加</button>
+      <button class="tab" data-page="Notes">便利贴</button>
     </div>
   </nav>
 
   <script>
     const storageKey = "yuRecoveryBoardTasksV4";
     const collapsedKey = "yuRecoveryBoardCollapsedV1";
+    const notesKey = "yuRecoveryBoardStickyNotesV1";
     const oldKeys = ["yuRecoveryBoardTasksV3", "yuRecoveryBoardTasksV2", "yuRecoveryBoardTasksV1"];
     const categoryMap = {
       survive: "life", room: "life", study: "study",
@@ -284,6 +353,7 @@
     const MS = 86400000;
     let selectedDate = todayKey();
     let tasks = loadTasks();
+    let notes = loadNotes();
     let collapsed = JSON.parse(localStorage.getItem(collapsedKey) || "{}");
 
     // Prevent iOS/Android browsers from selecting task text during swipe or sorting gestures.
@@ -369,8 +439,27 @@
       }
       return defaultTasks();
     }
+
+    function normalizeNote(n, i=0) {
+      return {
+        id: n.id || "n" + Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+        text: String(n.text || "").trim(),
+        createdAt: n.createdAt || Date.now() + i
+      };
+    }
+    function loadNotes() {
+      const raw = localStorage.getItem(notesKey);
+      if (!raw) return [];
+      try {
+        return JSON.parse(raw).map(normalizeNote).filter(n => n.text).slice(0, 9);
+      } catch (_) {
+        return [];
+      }
+    }
+
     function save() {
       localStorage.setItem(storageKey, JSON.stringify(tasks));
+      localStorage.setItem(notesKey, JSON.stringify(notes));
       localStorage.setItem(collapsedKey, JSON.stringify(collapsed));
     }
 
@@ -378,8 +467,8 @@
       return [...list].sort((a,b) => a.order - b.order || a.createdAt - b.createdAt);
     }
     function render() {
-      document.getElementById("todayLine").textContent = dateText(todayKey());
-      renderToday(); renderDays(); renderCalendar(); fillDateSelect(); save();
+      document.getElementById("todayLine").textContent = `Today’s · ${dateText(todayKey())}`;
+      renderToday(); renderDays(); renderCalendar(); renderNotes(); fillDateSelect(); save();
     }
     function renderToday() {
       const list = tasks.filter(t => t.date === todayKey());
@@ -448,7 +537,8 @@
     }
     function addSwipe(el) {
       let startX=0, startY=0, dx=0, open=false, dragging=false, moved=false;
-      const maxOpen = () => Math.min(el.parentElement.offsetWidth * .33, 120);
+      const shell = el.parentElement;
+      const maxOpen = () => Math.min(shell.offsetWidth * .33, 120);
       el.addEventListener("touchstart", e => {
         if (el.classList.contains("sorting") || e.target.closest(".drag-handle")) return;
         startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; moved = false; dragging = true; el.style.transition = "none";
@@ -460,6 +550,7 @@
         dx = x - startX; if (Math.abs(dx) > 7) moved = true;
         let next = open ? -maxOpen() + dx : dx;
         next = Math.max(-maxOpen(), Math.min(0, next));
+        shell.classList.toggle("swiping", next < -2);
         el.style.transform = `translateX(${next}px)`;
       }, {passive:true});
       el.addEventListener("touchend", () => {
@@ -467,6 +558,8 @@
         dragging = false; el.style.transition = "transform .18s ease";
         const threshold = maxOpen() * .45;
         open = open ? dx > threshold * .6 ? false : true : dx < -threshold;
+        shell.classList.remove("swiping");
+        shell.classList.toggle("open", open);
         el.style.transform = open ? `translateX(${-maxOpen()}px)` : "translateX(0)";
         if (moved) setTimeout(() => { dx = 0; }, 0);
       });
@@ -559,6 +652,118 @@
       handle.addEventListener("pointerup", end);
       handle.addEventListener("pointercancel", end);
       handle.addEventListener("lostpointercapture", end);
+    }
+
+
+    function renderNotes() {
+      const grid = document.getElementById("stickyGrid");
+      if (!grid) return;
+      grid.innerHTML = "";
+      document.getElementById("notesCount").textContent = `${notes.length}/9`;
+      for (let i=0; i<9; i++) {
+        grid.appendChild(stickyElement(i, notes[i]));
+      }
+    }
+
+    function stickyElement(index, note) {
+      const shell = document.createElement("div");
+      shell.className = "sticky-shell" + (note ? "" : " empty-shell");
+      const action = document.createElement("div");
+      action.className = "sticky-action";
+      const x = document.createElement("button");
+      x.className = "xbtn";
+      x.textContent = "✕";
+      x.setAttribute("aria-label", "删除便利贴");
+      x.onclick = e => { e.stopPropagation(); removeNote(index, shell); };
+      action.appendChild(x);
+
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "sticky-note" + (note ? "" : " empty-note");
+      card.textContent = note ? note.text : "点一下写便利贴";
+      card.onclick = () => {
+        if (card.dataset.swiped === "1") return;
+        startNoteEdit(index, card);
+      };
+
+      addStickySwipe(card, shell, index);
+      shell.appendChild(action);
+      shell.appendChild(card);
+      return shell;
+    }
+
+    function startNoteEdit(index, card) {
+      if (card.dataset.editing === "1") return;
+      card.dataset.editing = "1";
+      const current = notes[index]?.text || "";
+      card.innerHTML = "";
+      card.classList.remove("empty-note");
+      const input = document.createElement("textarea");
+      input.className = "sticky-input";
+      input.maxLength = 120;
+      input.placeholder = "写 40–60 个中文字最清楚";
+      input.value = current;
+      card.appendChild(input);
+
+      const finish = () => {
+        const value = input.value.trim();
+        if (value) {
+          if (notes[index]) notes[index].text = value;
+          else notes[index] = { id: "n" + Date.now().toString(36) + Math.random().toString(36).slice(2,7), text: value, createdAt: Date.now() };
+        } else if (notes[index]) {
+          notes.splice(index, 1);
+        }
+        notes = notes.filter(Boolean).slice(0, 9);
+        save(); renderNotes();
+      };
+      input.addEventListener("pointerdown", e => e.stopPropagation());
+      input.addEventListener("click", e => e.stopPropagation());
+      input.addEventListener("keydown", e => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") finish();
+        if (e.key === "Escape") renderNotes();
+      });
+      input.addEventListener("blur", finish);
+      input.focus();
+      input.select();
+    }
+
+    function addStickySwipe(card, shell, index) {
+      let startX=0, startY=0, dx=0, open=false, dragging=false, moved=false;
+      const maxOpen = () => Math.min(shell.offsetWidth * .33, 96);
+      card.addEventListener("touchstart", e => {
+        if (!notes[index]) return;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; moved = false; dragging = true; card.style.transition = "none";
+      }, {passive:true});
+      card.addEventListener("touchmove", e => {
+        if (!dragging || !notes[index]) return;
+        const x = e.touches[0].clientX, y = e.touches[0].clientY;
+        if (Math.abs(y-startY) > Math.abs(x-startX) + 8) return;
+        dx = x - startX; if (Math.abs(dx) > 7) moved = true;
+        let next = open ? -maxOpen() + dx : dx;
+        next = Math.max(-maxOpen(), Math.min(0, next));
+        shell.classList.toggle("swiping", next < -2);
+        card.style.transform = `translateX(${next}px)`;
+      }, {passive:true});
+      card.addEventListener("touchend", () => {
+        if (!dragging || !notes[index]) return;
+        dragging = false; card.style.transition = "transform .18s ease";
+        const threshold = maxOpen() * .45;
+        open = open ? dx > threshold * .6 ? false : true : dx < -threshold;
+        shell.classList.remove("swiping");
+        shell.classList.toggle("open", open);
+        card.style.transform = open ? `translateX(${-maxOpen()}px)` : "translateX(0)";
+        if (moved) {
+          card.dataset.swiped = "1";
+          setTimeout(() => { dx = 0; delete card.dataset.swiped; }, 180);
+        }
+      });
+    }
+
+    function removeNote(index, shell) {
+      if (!notes[index]) return;
+      const card = shell.querySelector(".sticky-note");
+      card.classList.add("removing");
+      setTimeout(() => { notes.splice(index, 1); save(); renderNotes(); }, 160);
     }
 
     function addRenameGesture(txtEl, task) {
