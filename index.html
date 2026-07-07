@@ -80,13 +80,21 @@
     }
     .task {
       position: relative; z-index: 1;
-      display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start;
+      display: grid; grid-template-columns: 30px 1fr 28px; gap: 10px; align-items: start;
       min-height: 54px; padding: 11px 12px;
       border: 1px solid var(--line); border-radius: 18px;
       background: white; box-shadow: 0 4px 14px rgba(47, 146, 120, .06);
       transform: translateX(0); transition: transform .18s ease, opacity .18s ease, background .18s ease, box-shadow .18s ease;
       touch-action: pan-y;
     }
+    .task-main { min-width: 0; }
+    .drag-handle {
+      align-self: stretch; min-height: 32px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 18px; font-weight: 800; line-height: 1;
+      touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+    }
+    .drag-handle:active { background: #eefcf7; color: var(--mint-dark); cursor: grabbing; }
     .task.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
     .task.sorting { box-shadow: 0 16px 34px rgba(35, 125, 104, .22); transform: scale(1.025); }
     body.drag-lock { overflow: hidden; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
@@ -289,6 +297,9 @@
         if (!e.target.closest("input, textarea, select, [contenteditable='true']")) e.preventDefault();
       }
     });
+    document.addEventListener("touchmove", e => {
+      if (document.body.classList.contains("drag-lock")) e.preventDefault();
+    }, { passive: false });
 
     function iconData() {
       const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'>
@@ -425,21 +436,21 @@
       const dueClass = diff >= 0 && diff <= 2 && !task.done ? " soon" : "";
       const due = hideTodayDue && task.date === todayKey() ? "" : `<span class="tag due${dueClass}">${shortDate(task.date)}</span>`;
       const note = task.note ? `<div class="note"></div>` : "";
-      el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div><div class="txt"></div>${note}<div class="meta">${due}</div></div>`;
+      el.innerHTML = `<div class="check">${task.done ? "✓" : ""}</div><div class="task-main"><div class="txt"></div>${note}<div class="meta">${due}</div></div><div class="drag-handle" role="button" aria-label="拖动排序" title="拖动排序">⋮⋮</div>`;
       const txtEl = el.querySelector(".txt");
       txtEl.textContent = task.text;
       if (task.note) el.querySelector(".note").textContent = task.note;
       el.querySelector(".check").onclick = () => toggleTask(index);
       addRenameGesture(txtEl, task);
       addSwipe(el);
-      addLongPressSort(shell, el, task);
+      addLongPressSort(shell, el, el.querySelector(".drag-handle"), task);
       shell.appendChild(action); shell.appendChild(el); return shell;
     }
     function addSwipe(el) {
       let startX=0, startY=0, dx=0, open=false, dragging=false, moved=false;
       const maxOpen = () => Math.min(el.parentElement.offsetWidth * .33, 120);
       el.addEventListener("touchstart", e => {
-        if (el.classList.contains("sorting")) return;
+        if (el.classList.contains("sorting") || e.target.closest(".drag-handle")) return;
         startX = e.touches[0].clientX; startY = e.touches[0].clientY; dx = 0; moved = false; dragging = true; el.style.transition = "none";
       }, {passive:true});
       el.addEventListener("touchmove", e => {
@@ -460,8 +471,8 @@
         if (moved) setTimeout(() => { dx = 0; }, 0);
       });
     }
-    function addLongPressSort(shell, card, task) {
-      let timer=null, sorting=false, startX=0, startY=0, pointerId=null, lastTarget=null;
+    function addLongPressSort(shell, card, handle, task) {
+      let sorting=false, startY=0, pointerId=null, lastTarget=null;
       const clearMarks = () => document.querySelectorAll(".drop-before,.drop-after").forEach(e => e.classList.remove("drop-before","drop-after"));
       const markTarget = (clientY) => {
         clearMarks(); lastTarget = null;
@@ -497,38 +508,37 @@
           lastTarget = target;
         }
       };
-      const startSort = () => {
+      const startSort = (e) => {
         sorting = true;
         shell.classList.add("dragging");
         card.classList.add("sorting");
         document.body.classList.add("drag-lock");
         card.style.transition = "none";
-        card.style.pointerEvents = "none";
-        card.style.touchAction = "none";
         if (window.getSelection) window.getSelection().removeAllRanges();
+        markTarget(e.clientY);
         if (navigator.vibrate) navigator.vibrate(12);
       };
-      card.addEventListener("pointerdown", e => {
-        if (e.target.closest("button,input,textarea,select")) return;
+      handle.addEventListener("pointerdown", e => {
         if (e.pointerType === "mouse" && e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
         pointerId = e.pointerId;
-        startX = e.clientX; startY = e.clientY;
-        try { card.setPointerCapture(pointerId); } catch (_) {}
-        if (window.getSelection) window.getSelection().removeAllRanges();
-        timer = setTimeout(startSort, 520);
+        startY = e.clientY;
+        try { handle.setPointerCapture(pointerId); } catch (_) {}
+        startSort(e);
       });
-      card.addEventListener("pointermove", e => {
+      handle.addEventListener("pointermove", e => {
         if (pointerId !== null && e.pointerId !== pointerId) return;
-        const moveX = e.clientX - startX, moveY = e.clientY - startY;
-        if (!sorting && (Math.abs(moveX) > 10 || Math.abs(moveY) > 10)) { clearTimeout(timer); timer=null; }
         if (!sorting) return;
         e.preventDefault();
+        e.stopPropagation();
+        const moveY = e.clientY - startY;
         card.style.transform = `translateY(${moveY}px) scale(1.025)`;
         markTarget(e.clientY);
       });
-      const end = () => {
-        clearTimeout(timer); timer=null;
-        if (pointerId !== null) { try { card.releasePointerCapture(pointerId); } catch (_) {} }
+      const end = (e) => {
+        if (e && pointerId !== null && e.pointerId !== undefined && e.pointerId !== pointerId) return;
+        if (pointerId !== null) { try { handle.releasePointerCapture(pointerId); } catch (_) {} }
         pointerId = null;
         if (!sorting) return;
         sorting = false;
@@ -536,8 +546,6 @@
         document.body.classList.remove("drag-lock");
         card.style.transition = "transform .18s ease";
         card.style.transform = "translateX(0)";
-        card.style.pointerEvents = "";
-        card.style.touchAction = "";
         if (window.getSelection) window.getSelection().removeAllRanges();
         if (lastTarget) {
           const parent = shell.parentElement;
@@ -548,10 +556,9 @@
         clearMarks(); lastTarget = null;
         setTimeout(render, 40);
       };
-      card.addEventListener("pointerup", end);
-      card.addEventListener("pointercancel", end);
-      card.addEventListener("lostpointercapture", end);
-      card.addEventListener("pointerleave", () => { if (!sorting) clearTimeout(timer); });
+      handle.addEventListener("pointerup", end);
+      handle.addEventListener("pointercancel", end);
+      handle.addEventListener("lostpointercapture", end);
     }
 
     function addRenameGesture(txtEl, task) {
