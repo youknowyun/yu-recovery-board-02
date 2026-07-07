@@ -34,8 +34,8 @@
     }
     .app { max-width: 760px; margin: 0 auto; }
     header { padding: 10px 4px 12px; }
-    .eyebrow { color: var(--text); font-size: 13px; font-weight: 700; letter-spacing: .04em; }
-    .eyebrow .today-date { color: var(--mint-dark); }
+    .eyebrow { color: var(--text); font-size: 18px; font-weight: 800; letter-spacing: .04em; }
+    .header-date { color: var(--mint-dark); font-size: 13px; font-weight: 700; margin-top: 5px; }
     h1 { margin: 6px 0 0; font-size: 28px; line-height: 1.15; }
     .panel {
       background: var(--card);
@@ -214,9 +214,9 @@
     .sticky-note {
       position: relative; z-index: 1;
       min-height: 118px; height: 118px; width: 100%;
-      border: 1px solid #f2e4a6; border-radius: 18px;
-      background: #fff8c7; color: #4b4322; padding: 12px;
-      box-shadow: 0 7px 18px rgba(143, 122, 35, .10);
+      border: 1px solid var(--line); border-radius: 18px;
+      background: #dff8ef; color: var(--text); padding: 12px;
+      box-shadow: 0 7px 18px rgba(47, 146, 120, .10);
       font-size: 14px; line-height: 1.45; text-align: left;
       white-space: pre-wrap; word-break: break-word;
       overflow: hidden; touch-action: pan-y;
@@ -229,7 +229,7 @@
     .sticky-note.removing { opacity: 0; transform: translateX(-40%) scale(.98); }
     .sticky-input {
       width: 100%; height: 100%; min-height: 92px; border: none; border-radius: 12px;
-      background: rgba(255,255,255,.55); color: #4b4322; padding: 8px;
+      background: rgba(255,255,255,.55); color: var(--text); padding: 8px;
       font-size: 14px; line-height: 1.45; resize: none; box-shadow: none;
     }
     .sticky-hint { color: var(--muted); font-size: 13px; line-height: 1.55; margin-top: 10px; }
@@ -261,6 +261,7 @@
     <header>
       <div class="eyebrow" id="todayLine">Today’s</div>
       <h1>Mintfield</h1>
+      <div class="header-date" id="todayDateLine"></div>
     </header>
 
     <section id="pageToday" class="page active">
@@ -476,7 +477,8 @@
       return [...list].sort((a,b) => a.order - b.order || a.createdAt - b.createdAt);
     }
     function render() {
-      document.getElementById("todayLine").innerHTML = `Today’s <span class="today-date">· ${formatSlashDate(todayKey())}</span>`;
+      document.getElementById("todayLine").textContent = "Today’s";
+      document.getElementById("todayDateLine").textContent = formatSlashDate(todayKey());
       renderToday(); renderDays(); renderCalendar(); renderNotes(); fillDateSelect(); save();
     }
     function renderToday() {
@@ -503,7 +505,7 @@
     function renderCalendar() {
       document.getElementById("selectedDateText").textContent = "";
       const list = tasks.filter(t => t.date === selectedDate);
-      drawGroupedList("calendarList", list, "这一天没有任务。", false, "calendar");
+      drawGroupedList("calendarList", list, "这一天没有任务。", true, "calendar");
     }
     function drawGroupedList(id, list, emptyText, hideTodayDue, pageKey) {
       const box = document.getElementById(id); box.innerHTML = "";
