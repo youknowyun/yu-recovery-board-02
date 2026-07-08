@@ -246,6 +246,10 @@
 
     .sticky-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px;
+      max-height: calc(118px * 4 + 10px * 3);
+      overflow-y: auto; overflow-x: hidden;
+      -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+      padding-right: 2px;
     }
     .sticky-add {
       min-height: 118px; height: 118px; border: 1px dashed var(--line); border-radius: 18px;
@@ -374,7 +378,7 @@
       <div class="panel">
         <div class="topline">
           <strong>便利贴</strong>
-          <span class="count" id="notesCount">0/12</span>
+          <span class="count" id="notesCount">0/21</span>
         </div>
         <div class="sticky-grid" id="stickyGrid"></div>
       </div>
@@ -436,7 +440,7 @@
       life: "🌿 生活小样", study: "🧩 学业拼图", repay: "💰 还款进度", balance: "⏰ 尾款提醒"
     };
     const MS = 86400000;
-    const MAX_NOTES = 12;
+    const MAX_NOTES = 21;
     let selectedDate = todayKey();
     let calendarMonth = monthStart(parseKey(selectedDate));
     let addReturnPage = "Today";
